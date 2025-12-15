@@ -1,15 +1,17 @@
-import time
-
 import pendulum
 import requests
 
-from utils.text import extraer_peso
+from utils.text import extraer_peso, limpiar_html
 
 # API publica de saga que entrega una lista con paginacion de los productos
 BASE_URL = (
     "https://www.falabella.com.pe/s/browse/v1/listing/pe"
     "?page={page}&categoryId={category_id}&categoryName={category_name}&pid=799c102f-9b4c-44be-a421-23e366a63b82"
 )
+
+
+# API publica de productos de saga utilizado solo para obtener la descripcion
+PRODUCT_URL = "https://www.falabella.com.pe/s/browse/v3/product/pe?productId={}"
 
 STRUCTURE_DATA = {
     "Perros": {
@@ -30,6 +32,30 @@ STRUCTURE_DATA = {
     #     ]
     # },
 }
+
+
+def obtener_descripcion_producto(product_id):
+    url = PRODUCT_URL.format(product_id)
+
+    try:
+        response = requests.get(url, timeout=10)
+    except Exception as e:
+        print(f"ERROR: Falló conexión: {e}")
+        return None
+
+    if response.status_code != 200:
+        print(f"ERROR: status {response.status_code} → Fin.")
+        return None
+
+    data = response.json()
+    descripcion_raw = data.get("data", {}).get("description", None)
+
+    if descripcion_raw is None:
+        return None
+
+    descripcion = limpiar_html(descripcion_raw)
+
+    return descripcion
 
 
 def fetch_data(page, category_id, category_name):
@@ -78,7 +104,9 @@ def extraer_precio(product):
 
         try:
             precio = float(precio_lista[0])
-        except:
+        except (ValueError, TypeError, IndexError):
+            # El 'continue' hace que se salte el producto al no tener un precio con formato correcto
+            # pasaria al siguiente de la lista
             continue
 
         # Precio normal (tachado)
@@ -121,6 +149,7 @@ def scrape_all():
             page = 1
             # while True:
             for _ in range(1):
+                fecha_inicio = pendulum.now("America/Lima").to_iso8601_string()
                 products = fetch_data(page, categoria_id, category_name)
                 if products is None:
                     break
@@ -131,6 +160,7 @@ def scrape_all():
                     )
                     nombre = product.get("displayName")
                     peso = extraer_peso(nombre)
+                    product_id = product.get("productId")
 
                     result = {
                         "categoria_animal": animal,
@@ -146,18 +176,24 @@ def scrape_all():
                         "precio_sin_descuento": precio_antes,
                         "precio_publico": precio_despues,
                         "precio_cmr": precio_cmr,
-                        "fecha_extraccion_inicio": pendulum.now(
-                            "America/Lima"
-                        ).to_iso8601_string(),
+                        "fecha_extraccion_inicio": fecha_inicio,
                         "fecha_extraccion_final": None,
-                        # Este id es usado en el endpoint de detalle por producto
-                        "product_id": product.get("productId"),
+                        "product_id": product_id,
                         "sku": product.get("skuId"),
                     }
+
+                    # TODO: Verificar si es necesario obtener la descripcion ya que aumenta el tiempo de scraping
+                    # considerablemente
+                    descripcion = obtener_descripcion_producto(product_id)
+                    result["descripcion_producto"] = descripcion
+
+                    result["fecha_extraccion_final"] = pendulum.now(
+                        "America/Lima"
+                    ).to_iso8601_string()
 
                     all_products.append(result)
 
                 page += 1
-                time.sleep(0.5)
+                # time.sleep(0.5)
 
     return all_products
