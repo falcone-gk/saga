@@ -1,6 +1,9 @@
 import pendulum
 import requests
 
+from constants import STRUCTURE_DATA
+from db.models import WebScrappingSagaFalabella
+from db.session import SessionLocal
 from utils.text import extraer_peso, limpiar_html
 
 # API publica de saga que entrega una lista con paginacion de los productos
@@ -12,42 +15,6 @@ BASE_URL = (
 
 # API publica de productos de saga utilizado solo para obtener la descripcion
 PRODUCT_URL = "https://www.falabella.com.pe/s/browse/v3/product/pe?productId={}"
-
-STRUCTURE_DATA = {
-    "perro": {
-        "categorias": [
-            {
-                "Alimentos": {
-                    "id": "CATG15475",
-                    "category_name": "Comida-para-perros",
-                }
-            },
-            # Higiene y Antipulgas tiene la misma categoria (id y nombre)
-            {
-                "Antiparasitarios": {
-                    "id": "CATG15478",
-                    "category_name": "Antiparasitarios",
-                }
-            },
-        ]
-    },
-    "gato": {
-        "categorias": [
-            {
-                "Alimentos": {
-                    "id": "CATG15470",
-                    "category_name": "Alimento-para-Gatos",
-                }
-            },
-            {
-                "Antiparasitarios": {
-                    "id": "CATG14642",
-                    "category_name": "Higiene-y-cuidado-para-gatos",
-                }
-            },
-        ]
-    },
-}
 
 
 def obtener_descripcion_producto(product_id):
@@ -148,8 +115,21 @@ def extraer_precio(product):
     return precio_antes, precio_descuento, precio_cmr
 
 
+def insert_webscrapping(data):
+    db = SessionLocal()
+    try:
+        db.bulk_insert_mappings(
+            WebScrappingSagaFalabella,
+            data,
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
 def scrape_all():
     all_products = []
+    counter = 0
 
     for animal, info in STRUCTURE_DATA.items():
         for categoria in info["categorias"]:
@@ -163,8 +143,8 @@ def scrape_all():
             )
 
             page = 1
-            # while True:
-            for _ in range(1):
+            while True:
+                # for _ in range(1):
                 fecha_inicio = pendulum.now("America/Lima").to_iso8601_string()
                 products = fetch_data(page, categoria_id, category_name)
                 if products is None:
@@ -207,21 +187,32 @@ def scrape_all():
 
                     # TODO: Verificar si es necesario obtener la descripcion ya que aumenta el tiempo de scraping
                     # considerablemente
-                    descripcion = obtener_descripcion_producto(product_id)
-                    result["descripcion_producto"] = descripcion
+                    # descripcion = obtener_descripcion_producto(product_id)
+                    # result["descripcion_producto"] = descripcion
 
                     result["fecha_extraccion_final"] = pendulum.now(
                         "America/Lima"
                     ).to_iso8601_string()
 
-                    print(
-                        "Extrayendo de datos del producto con sku:",
-                        sku,
-                        "finalizada correctamente",
-                    )
+                    # print(
+                    #     "Extrayendo de datos del producto con sku:",
+                    #     sku,
+                    #     "finalizada correctamente",
+                    # )
 
                     all_products.append(result)
 
                 page += 1
 
-    return all_products
+            # Insertamos los datos de una categoria
+            insert_webscrapping(all_products)
+            print(
+                f"\nINFO: Se realizó el scraping de {len(all_products)} productos {animal} / {nombre_categoria}."
+            )
+            # Añadimos al counter total
+            counter += len(all_products)
+
+            # Limpiamos memoria
+            all_products = []
+
+    return counter
