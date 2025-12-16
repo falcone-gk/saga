@@ -14,7 +14,7 @@ BASE_URL = (
 PRODUCT_URL = "https://www.falabella.com.pe/s/browse/v3/product/pe?productId={}"
 
 STRUCTURE_DATA = {
-    "Perros": {
+    "perro": {
         "categorias": [
             {
                 "Alimentos": {
@@ -22,15 +22,31 @@ STRUCTURE_DATA = {
                     "category_name": "Comida-para-perros",
                 }
             },
-            # {"Antiparasitarios": {"id": "CATG15478"}},
+            # Higiene y Antipulgas tiene la misma categoria (id y nombre)
+            {
+                "Antiparasitarios": {
+                    "id": "CATG15478",
+                    "category_name": "Antiparasitarios",
+                }
+            },
         ]
     },
-    # "Gatos": {
-    #     "categorias": [
-    #         {"Alimentos": {"id": "CATG15470"}},
-    #         {"Antiparasitarios": {"id": "CATG14642"}},
-    #     ]
-    # },
+    "gato": {
+        "categorias": [
+            {
+                "Alimentos": {
+                    "id": "CATG15470",
+                    "category_name": "Alimento-para-Gatos",
+                }
+            },
+            {
+                "Antiparasitarios": {
+                    "id": "CATG14642",
+                    "category_name": "Higiene-y-cuidado-para-gatos",
+                }
+            },
+        ]
+    },
 }
 
 
@@ -44,7 +60,7 @@ def obtener_descripcion_producto(product_id):
         return None
 
     if response.status_code != 200:
-        print(f"ERROR: status {response.status_code} → Fin.")
+        print(f"ERROR status {response.status_code} {url} → Fin.")
         return None
 
     data = response.json()
@@ -68,18 +84,18 @@ def fetch_data(page, category_id, category_name):
     try:
         response = requests.get(url, timeout=10)
     except Exception as e:
-        print(f"ERROR: Falló conexión: {e}")
+        print(f"ERROR Falló conexión: {e}")
         return None
 
     if response.status_code != 200:
-        print(f"INFO: status {response.status_code} → Fin.")
+        print(f"Status {response.status_code} {url} → Fin.")
         return None
 
     data = response.json()
     results = data.get("data", {}).get("results", [])
 
     if not results:
-        print("INFO: Página sin resultados → Fin.")
+        print("Página sin resultados → Fin.")
         return None
 
     return results
@@ -159,8 +175,15 @@ def scrape_all():
                         product
                     )
                     nombre = product.get("displayName")
-                    peso = extraer_peso(nombre)
+                    sku = product.get("skuId")
                     product_id = product.get("productId")
+
+                    # No tiene sentido obtener el peso de productos que no son alimentos
+                    peso = None
+                    if category_name == "Alimentos":
+                        peso = extraer_peso(nombre)
+
+                    print("Extrayendo datos del producto con sku:", sku)
 
                     result = {
                         "categoria_animal": animal,
@@ -179,7 +202,7 @@ def scrape_all():
                         "fecha_extraccion_inicio": fecha_inicio,
                         "fecha_extraccion_final": None,
                         "product_id": product_id,
-                        "sku": product.get("skuId"),
+                        "sku": sku,
                     }
 
                     # TODO: Verificar si es necesario obtener la descripcion ya que aumenta el tiempo de scraping
@@ -191,9 +214,14 @@ def scrape_all():
                         "America/Lima"
                     ).to_iso8601_string()
 
+                    print(
+                        "Extrayendo de datos del producto con sku:",
+                        sku,
+                        "finalizada correctamente",
+                    )
+
                     all_products.append(result)
 
                 page += 1
-                # time.sleep(0.5)
 
     return all_products
