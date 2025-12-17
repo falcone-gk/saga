@@ -1,4 +1,13 @@
-.venv
-__pycache__
-*.pyc
-logs
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+.venv/
+
+# Distribución / Metadatos
+*.egg-info/
+.eggs/
+dist/
+build/
