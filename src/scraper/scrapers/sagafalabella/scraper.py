@@ -1,9 +1,13 @@
 import sys
 
+from scraper.core.logging import get_logger
+
 from .client import fetch_products_page
 from .constants import STRUCTURE_DATA
 from .parser import extraer_producto
 from .repository import bulk_insert_falabella
+
+logger = get_logger(__name__)
 
 
 def scrape():
@@ -19,7 +23,9 @@ def scrape():
             categoria_id = datos_cat["id"]
             category_name = datos_cat["category_name"]
 
-            print(f"Iniciando: {animal} > {nombre_categoria}")
+            logger.info(
+                "Iniciando scraping de %s > %s", animal, nombre_categoria
+            )
 
             while True:
                 products = fetch_products_page(
@@ -34,26 +40,31 @@ def scrape():
                 ]
 
                 bulk_insert_falabella(parsed)
-                print(f"Página {page}: {len(parsed)} productos guardados.")
+                logger.info(
+                    "Página %s: %s productos guardados.", page, len(parsed)
+                )
 
                 page += 1
                 total_general += len(parsed)
 
-    return total_general
+    logger.info("Total de productos procesados: %s", total_general)
 
 
 def main():
     """Punto de entrada para el script"""
-    print("=== INICIANDO SCRAPER SAGA FALABELLA ===")
+    logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
+
     try:
-        total = scrape()
-        print("\n=== PROCESO FINALIZADO ===")
-        print(f"Total de productos procesados: {total}")
+        scrape()
+        logger.info("=== PROCESO FINALIZADO ===")
+
     except KeyboardInterrupt:
-        print("\nScrapeo interrumpido por el usuario.")
+        logger.warning("Scrapeo interrumpido por el usuario")
         sys.exit(0)
-    except Exception as e:
-        print(f"\nError crítico: {e}")
+
+    except Exception:
+        # incluye stacktrace completo
+        logger.exception("Error crítico durante la ejecución")
         sys.exit(1)
 
 

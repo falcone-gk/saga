@@ -1,6 +1,9 @@
 import pendulum
 
+from scraper.core.logging import get_logger
 from scraper.utils.text import extraer_peso
+
+logger = get_logger(__name__)
 
 
 def extraer_precio(product):
@@ -62,7 +65,7 @@ def extraer_producto(animal, product, category_name):
     if category_name == "Alimentos":
         peso = extraer_peso(nombre)
 
-    print("Extrayendo datos del producto con sku:", sku)
+    logger.info("Extrayendo datos del producto con sku: %s", sku)
 
     result = {
         "categoria_animal": animal,
