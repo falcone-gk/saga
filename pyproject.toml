@@ -17,3 +17,9 @@ dependencies = [
 dev = [
     "ipykernel>=7.1.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+scrape-saga = "scraper.scrapers.sagafalabella.scraper:main"

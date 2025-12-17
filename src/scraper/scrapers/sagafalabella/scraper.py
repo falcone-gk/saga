@@ -1,40 +1,61 @@
-# sites/falabella/scraper.py
+import sys
 
 from .client import fetch_products_page
 from .constants import STRUCTURE_DATA
 from .parser import extraer_producto
-from .repository import bulk_insert
+from .repository import bulk_insert_falabella
 
 
 def scrape():
-    total = 0
-
+    total_general = 0
+    # Iteramos sobre la estructura definida en constantes
     for animal, info in STRUCTURE_DATA.items():
-        for categoria in info["categorias"]:
+        for categoria_dict in info["categorias"]:
             page = 1
+            # Extraemos la info de la categoría (asumiendo estructura de tu dict)
+            nombre_categoria = list(categoria_dict.keys())[0]
+            datos_cat = categoria_dict[nombre_categoria]
 
-            nombre_categoria = list(categoria.keys())[0]
-            categoria_id = categoria[nombre_categoria]["id"]
-            category_name = categoria[nombre_categoria]["category_name"]
+            categoria_id = datos_cat["id"]
+            category_name = datos_cat["category_name"]
+
+            print(f"Iniciando: {animal} > {nombre_categoria}")
 
             while True:
-                # Extraea el json completo de cada producto
                 products = fetch_products_page(
                     page, categoria_id, category_name
                 )
 
-                # Si no hay productos, se sale del bucle porque ya no hay mas paginas
-                # en la categoria
-                if products is None:
+                if products is None:  # Maneja None o lista vacía
                     break
 
-                # Extrae solo los campos que deseamos de cada producto
                 parsed = [
                     extraer_producto(animal, p, category_name) for p in products
                 ]
-                bulk_insert(parsed)
+
+                bulk_insert_falabella(parsed)
+                print(f"Página {page}: {len(parsed)} productos guardados.")
+
                 page += 1
+                total_general += len(parsed)
 
-            total += len(parsed)
+    return total_general
 
-    return total
+
+def main():
+    """Punto de entrada para el script"""
+    print("=== INICIANDO SCRAPER SAGA FALABELLA ===")
+    try:
+        total = scrape()
+        print("\n=== PROCESO FINALIZADO ===")
+        print(f"Total de productos procesados: {total}")
+    except KeyboardInterrupt:
+        print("\nScrapeo interrumpido por el usuario.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\nError crítico: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
