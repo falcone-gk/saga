@@ -47,7 +47,7 @@ def scrape():
                 logger.info(
                     "Total de productos scrapeados (pagina %s): %s",
                     page,
-                    len(parsed_total),
+                    len(parsed),
                 )
                 page += 1
 
