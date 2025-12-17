@@ -24,28 +24,42 @@ def scrape():
             category_name = datos_cat["category_name"]
 
             logger.info(
-                "Iniciando scraping de %s > %s", animal, nombre_categoria
+                "Iniciando scraping de %s -> %s", animal, nombre_categoria
             )
 
+            # Iteramos sobre los productos de la categoría
+            parsed_total = []
             while True:
+                logger.info("Scrapeando pagina %s", page)
                 products = fetch_products_page(
                     page, categoria_id, category_name
                 )
 
-                if products is None:  # Maneja None o lista vacía
+                if products is None:
+                    logger.info("No hay mas productos para scrapear")
                     break
 
                 parsed = [
                     extraer_producto(animal, p, category_name) for p in products
                 ]
+                parsed_total.extend(parsed)
 
-                bulk_insert_falabella(parsed)
                 logger.info(
-                    "Página %s: %s productos guardados.", page, len(parsed)
+                    "Total de productos scrapeados (pagina %s): %s",
+                    page,
+                    len(parsed_total),
                 )
-
                 page += 1
-                total_general += len(parsed)
+
+            # Insertamos los datos de la categoria en la BD
+            bulk_insert_falabella(parsed_total)
+            total_general += len(parsed_total)
+            logger.info(
+                "Total de productos scrapeados (%s -> %s): %s",
+                animal,
+                nombre_categoria,
+                len(parsed_total),
+            )
 
     logger.info("Total de productos procesados: %s", total_general)
 
