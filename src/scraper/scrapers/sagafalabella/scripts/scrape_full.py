@@ -1,11 +1,10 @@
 import sys
 
 from scraper.core.logging import get_logger
-
-from .client import fetch_products_page
-from .constants import STRUCTURE_DATA
-from .parser import extraer_producto
-from .repository import bulk_insert_falabella
+from scraper.scrapers.sagafalabella.client import fetch_products_page
+from scraper.scrapers.sagafalabella.constants import STRUCTURE_DATA
+from scraper.scrapers.sagafalabella.parser import extraer_producto
+from scraper.scrapers.sagafalabella.repository import bulk_insert_falabella
 
 logger = get_logger(__name__)
 

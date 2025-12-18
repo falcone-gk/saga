@@ -24,4 +24,4 @@ dev = [
 where = ["src"]
 
 [project.scripts]
-scrape-saga = "scraper.scrapers.sagafalabella.scraper:main"
+scrape-full-saga = "scraper.scrapers.sagafalabella.scripts.scrape_full:main"
