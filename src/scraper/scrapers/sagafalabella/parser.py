@@ -85,21 +85,11 @@ def extraer_producto(animal, product, category_name):
         "fecha_extraccion_final": None,
         "product_id": product_id,
         "sku": sku,
+        "url": product.get("url"),
     }
-
-    # TODO: Verificar si es necesario obtener la descripcion ya que aumenta el tiempo de scraping
-    # considerablemente
-    # descripcion = obtener_descripcion_producto(product_id)
-    # result["descripcion_producto"] = descripcion
 
     result["fecha_extraccion_final"] = pendulum.now(
         "America/Lima"
     ).to_iso8601_string()
-
-    # print(
-    #     "Extrayendo de datos del producto con sku:",
-    #     sku,
-    #     "finalizada correctamente",
-    # )
 
     return result
