@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # Paths
     BASE_DIR: Path = Path(__file__).resolve().parents[3]
     LOG_DIR: Path = BASE_DIR / "logs"
+    TMP_DIR: Path = BASE_DIR / "tmp"
 
     # Database
     DB_HOST: str = "localhost"
@@ -36,3 +37,4 @@ class Settings(BaseSettings):
 
 settings = Settings()
 settings.LOG_DIR.mkdir(exist_ok=True)
+settings.TMP_DIR.mkdir(exist_ok=True)
