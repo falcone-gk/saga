@@ -38,3 +38,23 @@ def guardar_parsed_temporal(parsed_lote):
     )
 
     logger.info("Archivo temporal de saga_falabella.parquet generado")
+
+
+def save_parsed_updated(parsed_lote):
+    """
+    Guarda un lote de productos en un archivo parquet temporal.
+    Si el archivo existe, actualiza (overwrite).
+    """
+    if not parsed_lote:
+        return
+
+    tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
+
+    df = pd.DataFrame(parsed_lote)
+
+    # Si el archivo existe, actualiza (overwrite)
+    df.to_parquet(tmp_file, engine="fastparquet", index=False, mode="w")
+
+    logger.info(
+        "Archivo temporal de saga_falabella_updated.parquet actualizado"
+    )
