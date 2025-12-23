@@ -24,6 +24,7 @@ def guardar_parsed_temporal(parsed_lote):
     Si el archivo existe, agrega (append).
     """
     if not parsed_lote:
+        logger.warning("No hay datos en el dataframe")
         return
 
     tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
@@ -40,20 +41,19 @@ def guardar_parsed_temporal(parsed_lote):
     logger.info("Archivo temporal de saga_falabella.parquet generado")
 
 
-def save_parsed_updated(parsed_lote):
+def save_parsed_updated(data):
     """
     Guarda un lote de productos en un archivo parquet temporal.
     Si el archivo existe, actualiza (overwrite).
     """
-    if not parsed_lote:
+    if data is None or data.empty:
+        logger.warning("No hay datos en el dataframe")
         return
 
     tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
 
-    df = pd.DataFrame(parsed_lote)
-
     # Si el archivo existe, actualiza (overwrite)
-    df.to_parquet(tmp_file, engine="fastparquet", index=False, mode="w")
+    data.to_parquet(tmp_file, engine="fastparquet", index=False)
 
     logger.info(
         "Archivo temporal de saga_falabella_updated.parquet actualizado"
