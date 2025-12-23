@@ -126,13 +126,13 @@ def extraer_extra_detalle_producto(sku, url):
         data = json.loads(next_data_script.string)
 
         # Extraccion de la descripcion del producto
-        description = None
-        raw_description = (
-            data.get("props", {})
-            .get("pageProps", {})
-            .get("productData", {})
-            .get("longDescription", None)
-        )
+        data = data.get("props", {}).get("pageProps", {}).get("productData", {})
+        raw_description = data.get("longDescription", None)
+
+        # Se vio casos en el que longDescription es empty string
+        # por lo tanto se toma la descripcion si no es None
+        long_desc = data.get("longDescription")
+        raw_description = long_desc if long_desc else data.get("description")
 
         description = limpiar_html(raw_description)
         if description is None:
