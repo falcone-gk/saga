@@ -23,7 +23,7 @@ def actualizar_categoria_y_descripcion(row):
         cat, desc = extraer_extra_detalle_producto(row["sku"], row["url"])
         return pd.Series([cat, desc])
     except Exception as e:
-        print(
+        logger.error(
             f"Error extrayendo detalle del producto (SKU {row.get('sku')}): {e}"
         )
         return pd.Series([None, None])
