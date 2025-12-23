@@ -29,3 +29,4 @@ where = ["src"]
 [project.scripts]
 scrape-full-saga = "scraper.scrapers.sagafalabella.jobs.scraper:main"
 update-saga-product = "scraper.scrapers.sagafalabella.jobs.get_extra_details_product:main"
+save-saga-product = "scraper.scrapers.sagafalabella.jobs.save_to_sql:main"

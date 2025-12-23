@@ -9,11 +9,17 @@ from .models import WebScrappingSagaFalabella
 logger = get_logger(__name__)
 
 
-def bulk_insert_falabella(products):
+def bulk_insert_falabella_from_parquet(parquet_path):
     session = SessionLocal()
     try:
-        session.bulk_insert_mappings(WebScrappingSagaFalabella, products)
+        df = pd.read_parquet(parquet_path, engine="fastparquet")
+        records = df.to_dict(orient="records")
+
+        session.bulk_insert_mappings(WebScrappingSagaFalabella, records)
         session.commit()
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
