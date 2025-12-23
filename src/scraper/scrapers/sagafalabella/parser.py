@@ -1,7 +1,15 @@
+import json
+import re
+
 import pendulum
+from bs4 import BeautifulSoup
 
 from scraper.core.logging import get_logger
-from scraper.utils.text import extraer_peso
+from scraper.scrapers.sagafalabella.client import (
+    fetch_html_product_extra_details,
+)
+from scraper.scrapers.sagafalabella.constants import STRUCTURE_DATA
+from scraper.utils.text import extraer_peso, limpiar_html
 
 logger = get_logger(__name__)
 
@@ -69,7 +77,7 @@ def extraer_producto(animal, product, category_name):
 
     result = {
         "categoria_animal": animal,
-        "categoria_producto": category_name,
+        "categoria_producto": None,
         "sub_categoria_producto": None,
         "marca": product.get("brand"),
         "nombre": nombre,
@@ -93,3 +101,71 @@ def extraer_producto(animal, product, category_name):
     ).to_iso8601_string()
 
     return result
+
+
+def obtener_categoria_por_category_id(category_id):
+    for data in STRUCTURE_DATA.values():
+        for categoria in data.get("categorias", []):
+            for nombre_categoria, info in categoria.items():
+                if info.get("id", "").upper() == category_id.upper():
+                    return nombre_categoria
+
+    return None
+
+
+def extraer_extra_detalle_producto(sku, url):
+    logger.info("Extrayendo detalle del producto con sku: %s", sku)
+    try:
+        content = fetch_html_product_extra_details(url)
+        soup = BeautifulSoup(content, "html.parser")
+
+        next_data_script = soup.find("script", id="__NEXT_DATA__")
+        if (not next_data_script) or (not next_data_script.string):
+            return None
+
+        data = json.loads(next_data_script.string)
+
+        # Extraccion de la descripcion del producto
+        description = None
+        raw_description = (
+            data.get("props", {})
+            .get("pageProps", {})
+            .get("productData", {})
+            .get("longDescription", None)
+        )
+
+        description = limpiar_html(raw_description)
+        if description is None:
+            logger.warning(
+                "No se pudo extraer la descripcón del sku %s de la url %s",
+                sku,
+                url,
+            )
+
+        # Extraccion de la categoria del producto
+        a = soup.select_one("a.Breadcrumbs-module_selected-bread-crumb__ZPj02")
+        url_category = a["href"]
+
+        match = re.search(r"/category/([^/]+)", url_category)
+        if match is None:
+            logger.warning(
+                "No se pudo extraer la categoria del producto con sku %s de la url %s",
+                sku,
+                url,
+            )
+            category_id = None
+        else:
+            category_id = match.group(1)
+
+        category = obtener_categoria_por_category_id(category_id)
+
+        return category, description
+
+    except Exception as e:
+        logger.error(
+            "Error obteniendo detalle del producto con sku %s de la url %s: %s",
+            sku,
+            url,
+            e,
+        )
+        return None, None
