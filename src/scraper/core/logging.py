@@ -1,5 +1,7 @@
 import logging
-from logging.handlers import TimedRotatingFileHandler
+import sys
+from datetime import datetime
+from pathlib import Path
 
 from scraper.core.settings import settings
 
@@ -22,19 +24,15 @@ def get_logger(name: str) -> logging.Logger:
     console.setLevel(level)
     console.setFormatter(formatter)
 
-    # ---------- Archivo (rotación diaria) ----------
-    file_handler = TimedRotatingFileHandler(
-        filename=settings.LOG_DIR / "logs.log",
-        when="midnight",  # rota a medianoche
-        interval=1,  # cada 1 día
-        backupCount=7,  # conserva 7 días de logs
-        encoding="utf-8",
-        utc=False,  # usa hora local (pon True si usas UTC)
-    )
+    # ---------- Nombre del script (SAFE) ----------
+    script_path = Path(sys.argv[0])
+    script_name = script_path.stem or "interactive"
 
-    # sufijo del archivo rotado
-    file_handler.suffix = "%Y-%m-%d"
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+    log_file = Path(settings.LOG_DIR) / f"{script_name}_{timestamp}.log"
+
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(level)
     file_handler.setFormatter(formatter)
 
