@@ -10,14 +10,15 @@ from scraper.scrapers.sagafalabella.repository import save_parsed_updated
 logger = get_logger(__name__)
 
 
-def combinar_categoria_animal(series: pd.Series) -> str:
-    valores = sorted(series.unique())
-    if len(valores) > 1:
-        return "-".join(valores)
-    return valores[0]
+def combinar_categoria_animal(series):
+    orden = ["perro", "gato"]
+    valores = set(series.dropna().unique())
+
+    resultado = [x for x in orden if x in valores]
+    return "-".join(resultado)
 
 
-def actualizar_categoria_y_descripcion(row: pd.Series) -> pd.Series:
+def actualizar_categoria_y_descripcion(row):
     try:
         cat, desc = extraer_extra_detalle_producto(row["sku"], row["url"])
         return pd.Series([cat, desc])
@@ -28,13 +29,14 @@ def actualizar_categoria_y_descripcion(row: pd.Series) -> pd.Series:
         return pd.Series([None, None])
 
 
+# Main function
 def update_product_data():
     tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
     df = pd.read_parquet(tmp_file, engine="fastparquet")
 
     # Combinar categoria_animal por SKU
     categoria_por_sku = df.groupby("sku")["categoria_animal"].apply(
-        lambda x: "-".join(sorted(x.unique()))
+        combinar_categoria_animal
     )
 
     df["categoria_animal"] = df["sku"].map(categoria_por_sku)
