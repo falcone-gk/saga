@@ -4,7 +4,7 @@ import re
 import pendulum
 from bs4 import BeautifulSoup
 
-from scraper.core.logging import get_logger
+from core.logging import get_logger
 from scraper.scrapers.sagafalabella.client import (
     fetch_html_product_extra_details,
 )

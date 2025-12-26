@@ -2,8 +2,8 @@ import sys
 
 import pandas as pd
 
-from scraper.core.logging import get_logger
-from scraper.core.settings import settings
+from core.logging import get_logger
+from core.settings import settings
 from scraper.scrapers.sagafalabella.parser import extraer_extra_detalle_producto
 from scraper.scrapers.sagafalabella.repository import save_parsed_updated
 

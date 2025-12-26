@@ -1,7 +1,7 @@
 import pandas as pd
 
-from scraper.core.logging import get_logger
-from scraper.core.settings import settings
+from core.logging import get_logger
+from core.settings import settings
 from scraper.database.session import SessionLocal
 
 from .models import WebScrappingSagaFalabella

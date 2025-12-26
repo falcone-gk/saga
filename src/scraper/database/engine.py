@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 
-from scraper.core.logging import get_logger
-from scraper.core.settings import settings
+from core.logging import get_logger
+from core.settings import settings
 
 logger = get_logger(__name__)
 

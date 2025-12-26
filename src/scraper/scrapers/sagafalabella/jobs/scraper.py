@@ -1,6 +1,6 @@
 import sys
 
-from scraper.core.logging import get_logger
+from core.logging import get_logger
 from scraper.scrapers.sagafalabella.client import fetch_products_page
 from scraper.scrapers.sagafalabella.constants import STRUCTURE_DATA
 from scraper.scrapers.sagafalabella.parser import extraer_producto

@@ -1,5 +1,5 @@
-from scraper.core.logging import get_logger
-from scraper.core.settings import settings
+from core.logging import get_logger
+from core.settings import settings
 from scraper.scrapers.sagafalabella.repository import (
     bulk_insert_falabella_from_parquet,
 )
