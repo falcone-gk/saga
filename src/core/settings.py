@@ -6,12 +6,12 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "saga-scraper"
+    APP_NAME: str = "data-platform"
     ENV: str = Field(default="dev")  # dev | prod | test
     DEBUG: bool = False
 
     # Paths
-    BASE_DIR: Path = Path(__file__).resolve().parents[3]
+    BASE_DIR: Path = Path(__file__).resolve().parents[2]
     LOG_DIR: Path = BASE_DIR / "logs"
     TMP_DIR: Path = BASE_DIR / "tmp"
 
@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     DB_NAME: str = "test_biomont"
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "root"
+
+    HDFS_HOST: str = "http://localhost:9870"
+    HDFS_USER: str = "hdfs"
 
     @property
     def DATABASE_URL(self) -> str:

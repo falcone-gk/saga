@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from scraper.core.settings import settings
+from core.settings import settings
 
 
 def get_logger(name: str) -> logging.Logger:
