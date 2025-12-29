@@ -600,8 +600,6 @@ def scrape():
 
 
 # job 2
-
-
 def combinar_categoria_animal(series):
     orden = ["perro", "gato"]
     valores = set(series.dropna().unique())
@@ -642,3 +640,10 @@ def update_product_data():
 
     # Guardando el archivo temporal actualizado
     save_parsed_updated(df)
+
+
+# Job 3
+def save_to_sql():
+    # TODO: Tener la ruta del archivo temporal
+    tmp_file = ""
+    bulk_insert_falabella_from_parquet(tmp_file)
