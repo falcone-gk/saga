@@ -73,7 +73,7 @@ def extraer_producto(animal, product, category_name):
     if category_name == "Alimentos":
         peso = extraer_peso(nombre)
 
-    logger.info("Extrayendo datos del producto con sku: %s", sku)
+    # logger.info("Extrayendo datos del producto con sku: %s", sku)
 
     result = {
         "categoria_animal": animal,
