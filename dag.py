@@ -1,12 +1,15 @@
 import html
+import io
 import json
 import os
 import re
+from datetime import datetime
 
 import pandas as pd
 import pendulum
 import requests
 from bs4 import BeautifulSoup
+from hdfs import InsecureClient
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -28,12 +31,7 @@ db_url = "postgresql+psycopg2://{}:{}@{}:5432/{}".format(
     usuario_psql, clave_psql, host_psql, base_ddatos
 )
 
-engine = create_engine(
-    db_url,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-)
+engine = create_engine(db_url)
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -217,6 +215,19 @@ BASE_URL = (
 # API publica de productos de saga utilizado solo para obtener la descripcion
 PRODUCT_URL = "https://www.falabella.com.pe/s/browse/v3/product/pe?productId={}"
 
+
+# HDFS paths
+fecha_actual = datetime.now().strftime("%Y-%m-%d")
+path_hdfs_raw = (
+    "/biomont/raw/bi_webscraping_sagafalabella_raw_{}.parquet".format(
+        fecha_actual
+    )
+)
+path_hdfs_complete = (
+    "/biomont/trusted/bi_webscraping_sagafalabella_complete_{}.parquet".format(
+        fecha_actual
+    )
+)
 
 ############# Utilidades generales #############
 
@@ -468,8 +479,16 @@ def fetch_html_product_extra_details(product_url):
 
 def bulk_insert_falabella_from_parquet(parquet_path):
     session = SessionLocal()
+
+    # Conectar con WebHDFS
+    client = InsecureClient("http://192.168.1.206:9870", user="aramos")
+
+    # Traer el archivo desde el HDFS para trabajarlo
+    with client.read(path_hdfs_complete) as reader:
+        parquet_bytes = io.BytesIO(reader.read())
+        df = pd.read_parquet(parquet_bytes, engine="fastparquet")
+
     try:
-        df = pd.read_parquet(parquet_path, engine="fastparquet")
         records = df.to_dict(orient="records")
 
         session.bulk_insert_mappings(WebScrappingSagaFalabella, records)
@@ -490,17 +509,20 @@ def guardar_parsed_temporal(parsed_lote):
         print("No hay datos en el dataframe")
         return
 
-    # TODO: Agregar el hdfs con la ruta
-    tmp_file = ""
-
+    parquet_buffer = io.BytesIO()
     df = pd.DataFrame(parsed_lote)
-
-    # Si el archivo existe, agrega (append)
     df.to_parquet(
-        tmp_file,
+        parquet_buffer,
         engine="fastparquet",
         index=False,
     )
+
+    # Regresar puntero al inicio
+    parquet_buffer.seek(0)
+
+    # Subir a HDFS
+    client = InsecureClient("http://192.168.1.206:9870", user="aramos")
+    client.write(path_hdfs_raw, data=parquet_buffer, overwrite=True)
 
     print("Archivo temporal de saga_falabella.parquet generado")
 
@@ -514,11 +536,15 @@ def save_parsed_updated(data):
         print("No hay datos en el dataframe")
         return
 
-    # TODO: Agregar el hdfs con la ruta
-    tmp_file = ""
+    parquet_buffer = io.BytesIO()
+    data.to_parquet(parquet_buffer, engine="fastparquet", index=False)
 
-    # Si el archivo existe, actualiza (overwrite)
-    data.to_parquet(tmp_file, engine="fastparquet", index=False)
+    # Regresar puntero al inicio
+    parquet_buffer.seek(0)
+
+    # Subir a HDFS
+    client = InsecureClient("http://192.168.1.206:9870", user="aramos")
+    client.write(path_hdfs_complete, data=parquet_buffer, overwrite=True)
 
     print("Archivo temporal de saga_falabella_updated.parquet actualizado")
 
@@ -538,7 +564,6 @@ def filtrar_productos_nuevos(products, skus_vistos):
 
 # job 1
 def scrape():
-    # counter = 0
     # Iteramos sobre la estructura definida en constantes
     for animal, info in STRUCTURE_DATA.items():
         parsed_total = []
@@ -621,9 +646,12 @@ def actualizar_categoria_y_descripcion(row):
 
 # Main function
 def update_product_data():
-    # TODO: Tener la ruta del archivo temporal
-    tmp_file = ""
-    df = pd.read_parquet(tmp_file, engine="fastparquet")
+    # Conectar con WebHDFS
+    client = InsecureClient("http://192.168.1.206:9870", user="aramos")
+    # Traer el archivo desde el HDFS para trabajarlo
+    with client.read(path_hdfs_raw) as reader:
+        parquet_bytes = io.BytesIO(reader.read())
+        df = pd.read_parquet(parquet_bytes, engine="fastparquet")
 
     # Combinar categoria_animal por SKU
     categoria_por_sku = df.groupby("sku")["categoria_animal"].apply(
