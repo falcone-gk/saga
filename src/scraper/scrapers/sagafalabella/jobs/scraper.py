@@ -58,7 +58,7 @@ def scrape():
                 # TODO: El extraer_producto no tomará el campo "categoria_producto" porque se llenará en el siguiente
                 # job cuando se extraiga el detalle del producto.
                 parsed = [
-                    extraer_producto(animal, p, category_name)
+                    extraer_producto(animal, p, nombre_categoria)
                     for p in productos_nuevos
                 ]
                 parsed_total.extend(parsed)
