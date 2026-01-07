@@ -14,56 +14,56 @@ from scraper.utils.text import extraer_peso, limpiar_html
 logger = get_logger(__name__)
 
 
-def extraer_precio(product):
+def get_prices(product):
     prices = product.get("prices", [])
     if not prices:
         return None, None, None
 
-    precio_antes = None
-    precio_descuento = None
+    normal_price = None
+    discounted_price = None
     precio_cmr = None
 
     for p in prices:
-        tipo = p.get("type", "")
+        _type = p.get("type", "")
         crossed = p.get("crossed", False)
-        precio_lista = p.get("price", [])
+        list_prices = p.get("price", [])
 
-        if not precio_lista:
+        if not list_prices:
             continue
 
         try:
-            precio = float(precio_lista[0])
+            price = float(list_prices[0])
         except (ValueError, TypeError, IndexError):
             # El 'continue' hace que se salte el producto al no tener un precio con formato correcto
             # pasaria al siguiente de la lista
             continue
 
         # Precio normal (tachado)
-        if tipo == "normalPrice" and crossed:
-            precio_antes = precio
+        if _type == "normalPrice" and crossed:
+            normal_price = price
 
         # Precio CMR
-        if tipo == "cmrPrice" and not crossed:
-            precio_cmr = precio
+        if _type == "cmrPrice" and not crossed:
+            precio_cmr = price
 
         # Precio con descuento
-        if tipo in ("eventPrice", "internetPrice") and not crossed:
-            precio_descuento = precio
+        if _type in ("eventPrice", "internetPrice") and not crossed:
+            discounted_price = price
 
         # Si no tiene eventPrice/internetPrice, usar el único sin crossed
         if (
-            precio_descuento is None
+            discounted_price is None
             and not crossed
-            and tipo not in ("cmrPrice",)
+            and _type not in ("cmrPrice",)
         ):
-            precio_antes = precio
+            normal_price = price
 
-    return precio_antes, precio_descuento, precio_cmr
+    return normal_price, discounted_price, precio_cmr
 
 
-def extraer_producto(animal, product, category_name):
-    fecha_inicio = pendulum.now("America/Lima").to_iso8601_string()
-    precio_antes, precio_despues, precio_cmr = extraer_precio(product)
+def get_product_data(animal, product, category_name):
+    start_date = pendulum.now("America/Lima").to_iso8601_string()
+    normal_price, dicounted_price, precio_cmr = get_prices(product)
     nombre = product.get("displayName")
     sku = product.get("skuId")
     product_id = product.get("productId")
@@ -72,8 +72,6 @@ def extraer_producto(animal, product, category_name):
     peso = None
     if category_name == "Alimentos":
         peso = extraer_peso(nombre)
-
-    # logger.info("Extrayendo datos del producto con sku: %s", sku)
 
     result = {
         "categoria_animal": animal,
@@ -86,10 +84,10 @@ def extraer_producto(animal, product, category_name):
         "descripcion_promocion": None,
         "descripcion_producto": None,
         "peso_considerado": peso,
-        "precio_sin_descuento": precio_antes,
-        "precio_publico": precio_despues,
+        "precio_sin_descuento": normal_price,
+        "precio_publico": dicounted_price,
         "precio_cmr": precio_cmr,
-        "fecha_extraccion_inicio": fecha_inicio,
+        "fecha_extraccion_inicio": start_date,
         "fecha_extraccion_final": None,
         "product_id": product_id,
         "sku": sku,
@@ -103,7 +101,7 @@ def extraer_producto(animal, product, category_name):
     return result
 
 
-def obtener_categoria_por_category_id(category_id):
+def get_category_name_by_id(category_id):
     for data in STRUCTURE_DATA.values():
         for categoria in data.get("categorias", []):
             for nombre_categoria, info in categoria.items():
@@ -157,7 +155,7 @@ def get_product_detail(sku, url):
         else:
             category_id = match.group(1)
 
-        category = obtener_categoria_por_category_id(category_id)
+        category = get_category_name_by_id(category_id)
 
         return category, description
 

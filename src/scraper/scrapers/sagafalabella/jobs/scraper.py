@@ -3,8 +3,7 @@ import sys
 from core.logging import get_logger
 from scraper.scrapers.sagafalabella.client import fetch_products_page
 from scraper.scrapers.sagafalabella.constants import STRUCTURE_DATA
-from scraper.scrapers.sagafalabella.parser import extraer_producto
-from scraper.scrapers.sagafalabella.repository import guardar_parsed_temporal
+from scraper.scrapers.sagafalabella.parser import get_product_data
 
 logger = get_logger(__name__)
 
@@ -22,7 +21,7 @@ def get_new_products(products, skus_stored):
 def scrape():
     # Iteramos sobre la estructura definida en constantes
     for animal, info in STRUCTURE_DATA.items():
-        total_parsed = []
+        scraped_data = []
         skus_stored = set()
         for dict_category in info["categorias"]:
             page = 1
@@ -51,10 +50,10 @@ def scrape():
                 new_products = get_new_products(products, skus_stored)
 
                 parsed = [
-                    extraer_producto(animal, p, category_label)
+                    get_product_data(animal, p, category_label)
                     for p in new_products
                 ]
-                total_parsed.extend(parsed)
+                scraped_data.extend(parsed)
 
                 logger.info(
                     "Total de productos scrapeados de %s -> %s (pagina %s): %s",
@@ -74,8 +73,9 @@ def scrape():
                 category_counter,
             )
 
-    guardar_parsed_temporal(total_parsed)
-    logger.info("Total de productos procesados: %s", len(total_parsed))
+    # guardar_parsed_temporal(scraped_data)
+    logger.info("Total de productos procesados: %s", len(scraped_data))
+    return scraped_data
 
 
 def main():
