@@ -3,9 +3,7 @@ import sys
 import pandas as pd
 
 from core.logging import get_logger
-from core.settings import settings
 from scraper.scrapers.sagafalabella.parser import get_product_detail
-from scraper.scrapers.sagafalabella.repository import save_parsed_updated
 
 logger = get_logger(__name__)
 
@@ -30,31 +28,41 @@ def get_category_and_description(row):
 
 
 # Main function
-def update_product_data():
-    tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
-    df = pd.read_parquet(tmp_file, engine="fastparquet")
-
+def update_product_data(data):
     # Combinar categoria_animal (perro-gato) por SKU presente en ambas categorias
     # de animal
-    new_merged_name = df.groupby("sku")["categoria_animal"].apply(
+    new_merged_name = data.groupby("sku")["categoria_animal"].apply(
         merge_animal_name
     )
 
-    df["categoria_animal"] = df["sku"].map(new_merged_name)
-    df = df.drop_duplicates(subset="sku").reset_index(drop=True)
+    data["categoria_animal"] = data["sku"].map(new_merged_name)
+    updated_data = data.drop_duplicates(subset="sku").reset_index(drop=True)
 
     # Extraer categoria y descripcion del producto
-    df[["categoria_producto", "descripcion_producto"]] = df.apply(
-        get_category_and_description, axis=1
+    updated_data[["categoria_producto", "descripcion_producto"]] = (
+        updated_data.apply(get_category_and_description, axis=1)
     )
 
-    # Guardando el archivo temporal actualizado
-    save_parsed_updated(df)
+    return updated_data
 
 
 def main():
-    """Punto de entrada para el script"""
+    from core.settings import settings
+
+    # Obtener el dataframe
+    parquet_path = settings.TMP_DIR / "saga_falabella.parquet"
+    data = pd.read_parquet(parquet_path, engine="fastparquet")
+
     logger.info("=== INICIANDO UPDATE DE PRODUCTOS SAGA FALABELLA ===")
+    updated_data = update_product_data(data)
+
+    # Guardando el dataframe en un parquet
+    tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
+    updated_data.to_parquet(tmp_file, engine="fastparquet", index=False)
+
+    logger.info(
+        "Archivo temporal de saga_falabella_updated.parquet actualizado"
+    )
 
     try:
         update_product_data()
