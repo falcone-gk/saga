@@ -113,7 +113,7 @@ def obtener_categoria_por_category_id(category_id):
     return None
 
 
-def extraer_extra_detalle_producto(sku, url):
+def get_product_detail(sku, url):
     logger.info("Extrayendo detalle del producto con sku: %s", sku)
     try:
         content = fetch_html_product_extra_details(url)

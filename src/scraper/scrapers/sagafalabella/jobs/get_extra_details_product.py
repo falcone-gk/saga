@@ -4,23 +4,23 @@ import pandas as pd
 
 from core.logging import get_logger
 from core.settings import settings
-from scraper.scrapers.sagafalabella.parser import extraer_extra_detalle_producto
+from scraper.scrapers.sagafalabella.parser import get_product_detail
 from scraper.scrapers.sagafalabella.repository import save_parsed_updated
 
 logger = get_logger(__name__)
 
 
-def combinar_categoria_animal(series):
+def merge_animal_name(series):
     orden = ["perro", "gato"]
     valores = set(series.dropna().unique())
 
-    resultado = [x for x in orden if x in valores]
-    return "-".join(resultado)
+    result = [x for x in orden if x in valores]
+    return "-".join(result)
 
 
-def actualizar_categoria_y_descripcion(row):
+def get_category_and_description(row):
     try:
-        cat, desc = extraer_extra_detalle_producto(row["sku"], row["url"])
+        cat, desc = get_product_detail(row["sku"], row["url"])
         return pd.Series([cat, desc])
     except Exception as e:
         logger.error(
@@ -34,17 +34,18 @@ def update_product_data():
     tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
     df = pd.read_parquet(tmp_file, engine="fastparquet")
 
-    # Combinar categoria_animal por SKU
-    categoria_por_sku = df.groupby("sku")["categoria_animal"].apply(
-        combinar_categoria_animal
+    # Combinar categoria_animal (perro-gato) por SKU presente en ambas categorias
+    # de animal
+    new_merged_name = df.groupby("sku")["categoria_animal"].apply(
+        merge_animal_name
     )
 
-    df["categoria_animal"] = df["sku"].map(categoria_por_sku)
+    df["categoria_animal"] = df["sku"].map(new_merged_name)
     df = df.drop_duplicates(subset="sku").reset_index(drop=True)
 
     # Extraer categoria y descripcion del producto
     df[["categoria_producto", "descripcion_producto"]] = df.apply(
-        actualizar_categoria_y_descripcion, axis=1
+        get_category_and_description, axis=1
     )
 
     # Guardando el archivo temporal actualizado

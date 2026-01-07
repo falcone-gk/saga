@@ -9,80 +9,73 @@ from scraper.scrapers.sagafalabella.repository import guardar_parsed_temporal
 logger = get_logger(__name__)
 
 
-def filtrar_productos_nuevos(products, skus_vistos):
+def get_new_products(products, skus_stored):
     productos_nuevos = []
     for producto in products:
         sku = producto.get("skuId")
-        if sku not in skus_vistos:
-            skus_vistos.add(sku)
+        if sku not in skus_stored:
+            skus_stored.add(sku)
             productos_nuevos.append(producto)
     return productos_nuevos
 
 
 def scrape():
-    # counter = 0
     # Iteramos sobre la estructura definida en constantes
     for animal, info in STRUCTURE_DATA.items():
-        parsed_total = []
-        skus_vistos = set()
-        for categoria_dict in info["categorias"]:
+        total_parsed = []
+        skus_stored = set()
+        for dict_category in info["categorias"]:
             page = 1
             # Extraemos la info de la categoría (asumiendo estructura de tu dict)
-            nombre_categoria = list(categoria_dict.keys())[0]
-            datos_categoria = categoria_dict[nombre_categoria]
+            category_label = list(dict_category.keys())[0]
+            category_data = dict_category[category_label]
 
-            categoria_id = datos_categoria["id"]
-            category_name = datos_categoria["category_name"]
+            category_id = category_data["id"]
+            category_name = category_data["category_name"]
 
             logger.info(
-                "Iniciando scraping de %s -> %s", animal, nombre_categoria
+                "Iniciando scraping de %s -> %s", animal, category_label
             )
 
             # Iteramos sobre los productos de la categoría
-            counter_categoria = 0
+            category_counter = 0
             while True:
                 logger.info("Scrapeando pagina %s", page)
-                productos = fetch_products_page(
-                    page, categoria_id, category_name
-                )
+                products = fetch_products_page(page, category_id, category_name)
 
-                if productos is None:
+                if products is None:
                     logger.info("No hay mas productos para scrapear")
                     break
 
                 # No consideramos productos repetidos dentro de una misma categoria
-                productos_nuevos = filtrar_productos_nuevos(
-                    productos, skus_vistos
-                )
+                new_products = get_new_products(products, skus_stored)
 
-                # TODO: El extraer_producto no tomará el campo "categoria_producto" porque se llenará en el siguiente
-                # job cuando se extraiga el detalle del producto.
                 parsed = [
-                    extraer_producto(animal, p, nombre_categoria)
-                    for p in productos_nuevos
+                    extraer_producto(animal, p, category_label)
+                    for p in new_products
                 ]
-                parsed_total.extend(parsed)
+                total_parsed.extend(parsed)
 
                 logger.info(
                     "Total de productos scrapeados de %s -> %s (pagina %s): %s",
                     animal,
-                    nombre_categoria,
+                    category_label,
                     page,
                     len(parsed),
                 )
                 page += 1
-                counter_categoria += len(parsed)
+                category_counter += len(parsed)
 
             # Insertamos los datos de la categoria
             logger.info(
                 "Total de productos scrapeados (%s -> %s): %s",
                 animal,
-                nombre_categoria,
-                counter_categoria,
+                category_label,
+                category_counter,
             )
 
-    guardar_parsed_temporal(parsed_total)
-    logger.info("Total de productos procesados: %s", len(parsed_total))
+    guardar_parsed_temporal(total_parsed)
+    logger.info("Total de productos procesados: %s", len(total_parsed))
 
 
 def main():
