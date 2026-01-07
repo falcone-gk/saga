@@ -21,6 +21,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
+    "marimo>=0.18.4",
 ]
 
 [tool.setuptools.packages.find]
