@@ -73,17 +73,30 @@ def scrape():
                 category_counter,
             )
 
-    # guardar_parsed_temporal(scraped_data)
-    logger.info("Total de productos procesados: %s", len(scraped_data))
+    logger.info("Total de productos extraidos: %s", len(scraped_data))
     return scraped_data
 
 
 def main():
-    """Punto de entrada para el script"""
+    import pandas as pd
+
+    from core.settings import settings
+
     logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
 
     try:
-        scrape()
+        data = scrape()
+
+        # Guardar los datos en un parquet
+        tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
+        df = pd.DataFrame(data)
+        df.to_parquet(
+            tmp_file,
+            engine="fastparquet",
+            index=False,
+        )
+        logger.info("Archivo temporal de saga_falabella.parquet generado")
+
         logger.info("=== PROCESO FINALIZADO ===")
 
     except KeyboardInterrupt:
