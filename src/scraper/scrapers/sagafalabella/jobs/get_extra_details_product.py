@@ -53,7 +53,6 @@ def main():
     parquet_path = settings.TMP_DIR / "saga_falabella.parquet"
     data = pd.read_parquet(parquet_path, engine="fastparquet")
 
-    logger.info("=== INICIANDO UPDATE DE PRODUCTOS SAGA FALABELLA ===")
     updated_data = update_product_data(data)
 
     # Guardando el dataframe en un parquet
@@ -64,8 +63,11 @@ def main():
         "Archivo temporal de saga_falabella_updated.parquet actualizado"
     )
 
+
+if __name__ == "__main__":
     try:
-        update_product_data()
+        logger.info("=== INICIANDO UPDATE DE PRODUCTOS SAGA FALABELLA ===")
+        main()
         logger.info("=== PROCESO FINALIZADO ===")
 
     except KeyboardInterrupt:
@@ -75,7 +77,3 @@ def main():
     except Exception:
         # incluye stacktrace completo
         logger.exception("Error crítico durante la ejecución")
-
-
-if __name__ == "__main__":
-    main()

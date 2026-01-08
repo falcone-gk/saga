@@ -82,23 +82,24 @@ def main():
 
     from core.settings import settings
 
-    logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
+    data = scrape()
 
+    # Guardar los datos en un parquet
+    tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
+    df = pd.DataFrame(data)
+    df.to_parquet(
+        tmp_file,
+        engine="fastparquet",
+        index=False,
+    )
+    logger.info("Archivo temporal de saga_falabella.parquet generado")
+
+
+if __name__ == "__main__":
     try:
-        data = scrape()
-
-        # Guardar los datos en un parquet
-        tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
-        df = pd.DataFrame(data)
-        df.to_parquet(
-            tmp_file,
-            engine="fastparquet",
-            index=False,
-        )
-        logger.info("Archivo temporal de saga_falabella.parquet generado")
-
+        logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
+        main()
         logger.info("=== PROCESO FINALIZADO ===")
-
     except KeyboardInterrupt:
         logger.warning("Scrapeo interrumpido por el usuario")
         sys.exit(0)
@@ -107,7 +108,3 @@ def main():
         # incluye stacktrace completo
         logger.exception("Error crítico durante la ejecución")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
