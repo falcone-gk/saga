@@ -12,8 +12,12 @@ __pycache__/
 .eggs/
 dist/
 build/
-logs/
-tmp/
+
+logs/*
+!logs/.gitkeep
+
+tmp/*
+!tmp/.gitkeep
 
 notebooks/*
 !notebooks/.gitkeep
