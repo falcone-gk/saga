@@ -39,5 +39,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-settings.LOG_DIR.mkdir(exist_ok=True)
-settings.TMP_DIR.mkdir(exist_ok=True)

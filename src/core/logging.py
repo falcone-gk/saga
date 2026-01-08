@@ -23,20 +23,20 @@ def get_logger(name: str) -> logging.Logger:
     console = logging.StreamHandler()
     console.setLevel(level)
     console.setFormatter(formatter)
+    logger.addHandler(console)
 
     # ---------- Nombre del script (SAFE) ----------
-    script_path = Path(sys.argv[0])
-    script_name = script_path.stem or "interactive"
+    try:
+        script_name = Path(sys.argv[0]).stem or "interactive"
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_file = settings.LOG_DIR / f"{script_name}_{timestamp}.log"
 
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    log_file = Path(settings.LOG_DIR) / f"{script_name}_{timestamp}.log"
-
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(level)
-    file_handler.setFormatter(formatter)
-
-    logger.addHandler(console)
-    logger.addHandler(file_handler)
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    except Exception:
+        # fallback silencioso: consola sigue funcionando
+        pass
 
     return logger
