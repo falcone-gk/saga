@@ -11,5 +11,3 @@ engine = create_engine(
     max_overflow=20,
     pool_pre_ping=True,
 )
-
-logger.info("Engine SQLAlchemy inicializado")

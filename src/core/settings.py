@@ -22,9 +22,6 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "root"
 
-    HDFS_HOST: str = "http://localhost:9870"
-    HDFS_USER: str = "hdfs"
-
     @property
     def DATABASE_URL(self) -> str:
         return (
