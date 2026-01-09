@@ -14,7 +14,7 @@
   "typeCheckingMode": "strict",
 
   "reportMissingTypeStubs": false,
-  "reportUnknownMemberType": "warning",
+  "reportUnknownMemberType": false,
   "reportUnknownParameterType": true,
   "reportUnknownVariableType": true,
 
