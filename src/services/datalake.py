@@ -1,150 +1,126 @@
+import io
 import json
-from io import BytesIO, StringIO
-from pathlib import Path
-from typing import Any, Union
+from typing import Any, Dict, List, Union
 
-from core.datalake_path import DatalakePathBuilder
-from core.settings import settings
+import pandas as pd
+from hdfs import InsecureClient
+
+from core.schemas import HDFSConfig
 
 
-class DatalakeClient:
+class DataLakeManager:
     """
-    Cliente unificado para la gestión de archivos en el Datalake de Biomont.
+    Clase para gestionar operaciones de lectura y escritura en Data Lake (HDFS).
 
-    Abstrae el almacenamiento físico (Local vs HDFS) y centraliza la lógica de
-    escritura y lectura. Utiliza `DatalakePathBuilder` para asegurar que todas
-    las rutas sigan el estándar definido por la organización.
-
-    Attributes:
-        builder (DatalakePathBuilder): Generador de rutas estandarizadas.
-        backend (str): Indica si el cliente opera en modo 'LOCAL' o 'HDFS'.
+    Soporta formatos JSON, CSV y Parquet utilizando buffers en memoria para
+    evitar la creación de archivos temporales locales.
     """
 
-    def __init__(self):
+    def __init__(self, config: HDFSConfig):
         """
-        Inicializa el cliente detectando el entorno desde settings.ENV.
-        Si el entorno es 'local' o 'dev', se utiliza almacenamiento en disco.
-        """
-        self.env = settings.ENV
-        self.builder = DatalakePathBuilder()
-        self._is_local = self.env in ("local", "dev")
+        Inicializa la conexión con el NameNode.
 
-        if self._is_local:
-            self.backend = "LOCAL"
-            self.base_path: Path = getattr(
-                settings, "DATALAKE_LOCAL_DIR", settings.BASE_DIR / "data"
-            )
-        else:
-            self.backend = "HDFS"
-            from hdfs import InsecureClient
-
-            self.client = InsecureClient(
-                settings.HDFS_HOST, user=settings.HDFS_USER
-            )
-
-    def _resolve_path(self, path: str) -> Union[Path, str]:
+        Args:
+            url (str): URL del WebHDFS (ej. 'http://localhost:9870').
+            user (str): Usuario con permisos de escritura en el clúster.
         """
-        Traduce una ruta lógica a una ruta física real.
-        """
-        clean_path = path.lstrip("/")
-        return (
-            self.base_path / clean_path if self._is_local else f"/{clean_path}"
+        self.client: InsecureClient = InsecureClient(
+            config.url, user=config.user
         )
 
-    def write(self, path: str, content: Any):
+    def write_data(
+        self,
+        hdfs_path: str,
+        data: Union[Dict, List, pd.DataFrame],
+        fmt: str = "json",
+        **kwargs: Any,
+    ) -> None:
         """
-        Escribe contenido en el Datalake detectando el formato automáticamente.
+        Escribe datos en HDFS en el formato especificado.
 
         Args:
-            path (str): Ruta destino (generada preferiblemente por self.builder).
-            content (Any): Datos a guardar. Soporta dict, list, str, bytes y BytesIO.
+            hdfs_path (str): Ruta completa de destino en HDFS.
+            data (Union[Dict, List, pd.DataFrame]): Datos a guardar. Dict/List para JSON,
+                                                    DataFrame para CSV/Parquet.
+            fmt (str): Formato del archivo ('json', 'csv', 'parquet'). Por defecto 'json'.
+            **kwargs: Argumentos adicionales para pandas (ej. sep, compression, index).
 
-        Examples:
-            >>> client = DatalakeClient()
-
-            # Caso 1: Guardar JSON (Scraping Raw)
-            >>> path = client.builder.raw(uuaa="atencion", dataset="compras", ...)
-            >>> client.write(path, {"id": 123, "status": "ok"})
-
-            # Caso 2: Guardar CSV (String plano)
-            >>> csv_data = "id,name\\n1,Producto"
-            >>> client.write("landing/peru/ventas/file.csv", csv_data)
-
-            # Caso 3: Guardar Parquet (desde Pandas)
-            >>> buffer = BytesIO()
-            >>> df.to_parquet(buffer)
-            >>> client.write("master/peru/bi/data.parquet", buffer)
+        Example:
+            >>> manager = HDFSManager('http://localhost:9870', 'hdfs')
+            >>> df = pd.DataFrame({'a': [1], 'b': [2]})
+            >>> manager.write_data('/user/data/test.parquet', df, fmt='parquet')
         """
-        resolved_path = self._resolve_path(path)
-
-        # 1. Preparación de datos (Serialización)
-        if isinstance(content, (dict, list)):
-            prepared_data = json.dumps(content, ensure_ascii=False)
-            mode = "text"
-        elif isinstance(content, str):
-            prepared_data = content
-            mode = "text"
-        elif isinstance(content, BytesIO):
-            prepared_data = content.getvalue()
-            mode = "bytes"
-        elif isinstance(content, bytes):
-            prepared_data = content
-            mode = "bytes"
-        else:
-            prepared_data = str(content)
-            mode = "text"
-
-        # 2. Escritura según Backend
-        if self._is_local:
-            resolved_path.parent.mkdir(parents=True, exist_ok=True)
-            if mode == "text":
-                resolved_path.write_text(prepared_data, encoding="utf-8")
-            else:
-                resolved_path.write_bytes(prepared_data)
-        else:
-            data_to_send = (
-                StringIO(prepared_data)
-                if mode == "text"
-                else BytesIO(prepared_data)
-            )
+        if fmt == "json":
+            content = json.dumps(data, indent=4)
             self.client.write(
-                resolved_path,
-                data_to_send,
-                overwrite=True,
-                encoding="utf-8" if mode == "text" else None,
+                hdfs_path, content, encoding="utf-8", overwrite=True
             )
 
-    def read(self, path: str, as_json: bool = False) -> Any:
+        elif fmt == "csv":
+            if not isinstance(data, pd.DataFrame):
+                raise TypeError(
+                    "Para CSV, 'data' debe ser un pandas DataFrame."
+                )
+            with self.client.write(
+                hdfs_path, encoding="utf-8", overwrite=True
+            ) as writer:
+                data.to_csv(writer, index=kwargs.get("index", False), **kwargs)
+
+        elif fmt == "parquet":
+            if not isinstance(data, pd.DataFrame):
+                raise TypeError(
+                    "Para Parquet, 'data' debe ser un pandas DataFrame."
+                )
+            buffer = io.BytesIO()
+            data.to_parquet(
+                buffer,
+                engine="pyarrow",
+                index=kwargs.get("index", False),
+                **kwargs,
+            )
+            self.client.write(hdfs_path, buffer.getvalue(), overwrite=True)
+
+        else:
+            raise ValueError(
+                f"Formato '{fmt}' no soportado. Usa 'json', 'csv' o 'parquet'."
+            )
+
+        print(f"Archivo guardado en: {hdfs_path}")
+
+    def read_data(
+        self, hdfs_path: str, fmt: str = "json"
+    ) -> Union[Dict, List, pd.DataFrame]:
         """
-        Lee el contenido de un archivo del Datalake.
+        Lee datos desde una ruta de HDFS y los transforma al objeto Python correspondiente.
 
         Args:
-            path (str): Ruta del archivo a leer.
-            as_json (bool): Si es True, convierte el texto leído en un objeto Python (dict/list).
+            hdfs_path (str): Ruta del archivo en HDFS.
+            fmt (str): Formato del archivo original ('json', 'csv', 'parquet').
 
         Returns:
-            Any: Contenido en formato str, bytes o dict/list.
+            Union[Dict, List, pd.DataFrame]: Datos cargados.
 
-        Examples:
-            >>> client = DatalakeClient()
-
-            # Leer un JSON como diccionario
-            >>> data = client.read("raw/peru/compras.json", as_json=True)
-            >>> print(data['status'])
-
-            # Leer un archivo de texto plano
-            >>> texto = client.read("landing/peru/logs.txt")
+        Example:
+            >>> manager = HDFSManager('http://localhost:9870', 'hdfs')
+            >>> data = manager.read_data('/user/data/test.json', fmt='json')
+            >>> print(type(data)) # <class 'dict'>
         """
-        resolved_path = self._resolve_path(path)
+        if fmt == "json":
+            with self.client.read(hdfs_path, encoding="utf-8") as reader:
+                return json.load(reader)
 
-        if self._is_local:
-            # Si es parquet o extensión binaria, leemos bytes, si no texto
-            if path.lower().endswith((".parquet", ".png", ".jpg", ".zip")):
-                data = resolved_path.read_bytes()
-            else:
-                data = resolved_path.read_text(encoding="utf-8")
+        elif fmt == "csv":
+            with self.client.read(hdfs_path, encoding="utf-8") as reader:
+                return pd.read_csv(reader)
+
+        elif fmt == "parquet":
+            with self.client.read(hdfs_path) as reader:
+                buffer = io.BytesIO(reader.read())
+                return pd.read_parquet(buffer)
+
         else:
-            with self.client.read(resolved_path) as reader:
-                data = reader.read()
+            raise ValueError(f"Formato '{fmt}' no soportado.")
 
-        return json.loads(data) if as_json else data
+    def list_files(self, hdfs_dir: str) -> List[str]:
+        """Lista los archivos en un directorio de HDFS."""
+        return self.client.list(hdfs_dir)
