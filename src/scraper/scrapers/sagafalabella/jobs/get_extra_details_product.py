@@ -57,13 +57,13 @@ def main():
 
     # Obtener el dataframe
     parquet_path = settings.TMP_DIR / "saga_falabella.parquet"
-    data = pd.read_parquet(parquet_path, engine="fastparquet")
+    data = pd.read_parquet(parquet_path, engine="pyarrow")
 
     updated_data = update_product_data(data)
 
     # Guardando el dataframe en un parquet
     tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
-    updated_data.to_parquet(tmp_file, engine="fastparquet", index=False)
+    updated_data.to_parquet(tmp_file, engine="pyarrow", index=False)
 
     logger.info(
         "Archivo temporal de saga_falabella_updated.parquet actualizado"

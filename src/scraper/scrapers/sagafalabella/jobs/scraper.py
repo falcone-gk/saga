@@ -100,7 +100,7 @@ def main():
     df = pd.DataFrame(data)
     df.to_parquet(
         tmp_file,
-        engine="fastparquet",
+        engine="pyarrow",
         index=False,
     )
     logger.info("Archivo temporal de saga_falabella.parquet generado")
