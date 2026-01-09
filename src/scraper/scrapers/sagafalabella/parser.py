@@ -9,7 +9,7 @@ from core.logging import get_logger
 from scraper.scrapers.sagafalabella.client import (
     fetch_html_product_extra_details,
 )
-from scraper.scrapers.sagafalabella.constants import STRUCTURE_DATA
+from scraper.scrapers.sagafalabella.constants import CATEGORY_LOOKUP
 from scraper.scrapers.sagafalabella.schemas import RawProduct, ScrapedProduct
 from scraper.utils.text import extraer_peso, limpiar_html
 
@@ -94,11 +94,10 @@ def get_category_name_by_id(category_id: Optional[str]) -> Optional[str]:
     if not category_id:
         return None
 
-    for data in STRUCTURE_DATA.values():
-        for categoria in data.get("categorias", []):
-            for nombre_categoria, info in categoria.items():
-                if info.get("id", "").upper() == category_id.upper():
-                    return nombre_categoria
+    category_info = CATEGORY_LOOKUP.get(category_id.upper())
+    if category_info:
+        return category_info.get("category_label")
+
     return None
 
 
