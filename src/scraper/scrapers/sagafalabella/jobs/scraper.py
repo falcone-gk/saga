@@ -1,80 +1,91 @@
 import sys
+from collections import defaultdict
+from typing import DefaultDict, TypedDict
 
 from core.logging import get_logger
 from scraper.scrapers.sagafalabella.client import fetch_products_page
-from scraper.scrapers.sagafalabella.constants import STRUCTURE_DATA
+from scraper.scrapers.sagafalabella.constants import (
+    CATEGORY_LOOKUP,
+)
 from scraper.scrapers.sagafalabella.parser import get_product_data
+from scraper.scrapers.sagafalabella.schemas import (
+    CategoryMetadata,
+    ScrapedProduct,
+)
 
 logger = get_logger(__name__)
 
 
-def get_new_products(products, skus_stored):
-    productos_nuevos = []
+class ProductDict(TypedDict):
+    skuId: str
+
+
+def get_new_products(
+    products: list[ProductDict],
+    skus_stored: set[str],
+) -> list[ProductDict]:
+    new_products: list[ProductDict] = []
+
     for producto in products:
-        sku = producto.get("skuId")
+        sku = producto["skuId"]
         if sku not in skus_stored:
             skus_stored.add(sku)
-            productos_nuevos.append(producto)
-    return productos_nuevos
+            new_products.append(producto)
+
+    return new_products
 
 
-def scrape():
-    # Iteramos sobre la estructura definida en constantes
-    for animal, info in STRUCTURE_DATA.items():
-        scraped_data = []
-        skus_stored = set()
-        for dict_category in info["categorias"]:
+def scrape() -> list[ScrapedProduct]:
+    all_scraped_data: list[ScrapedProduct] = []
+
+    categories_by_animal: DefaultDict[
+        str, list[tuple[str, CategoryMetadata]]
+    ] = defaultdict(list)
+
+    for cat_id, metadata in CATEGORY_LOOKUP.items():
+        categories_by_animal[metadata["animal"]].append((cat_id, metadata))
+
+    for animal, categories in categories_by_animal.items():
+        logger.info(f"=== Iniciando scraping para el animal: {animal} ===")
+
+        skus_stored_for_animal: set[str] = set()
+
+        for cat_id, metadata in categories:
+            category_label = metadata["category_label"]
+            category_name = metadata["category_url"]
+
             page = 1
-            # Extraemos la info de la categoría (asumiendo estructura de tu dict)
-            category_label = list(dict_category.keys())[0]
-            category_data = dict_category[category_label]
-
-            category_id = category_data["id"]
-            category_name = category_data["category_name"]
-
-            logger.info(
-                "Iniciando scraping de %s -> %s", animal, category_label
-            )
-
-            # Iteramos sobre los productos de la categoría
             category_counter = 0
-            while True:
-                logger.info("Scrapeando pagina %s", page)
-                products = fetch_products_page(page, category_id, category_name)
+            logger.info(f"Procesando categoría: {category_label}")
 
-                if products is None:
-                    logger.info("No hay mas productos para scrapear")
+            while True:
+                products: list[ProductDict] = fetch_products_page(
+                    page, cat_id, category_name
+                )
+
+                if not products:
                     break
 
-                # No consideramos productos repetidos dentro de una misma categoria
-                new_products = get_new_products(products, skus_stored)
+                new_products = get_new_products(
+                    products, skus_stored_for_animal
+                )
 
                 parsed = [
                     get_product_data(animal, p, category_label)
                     for p in new_products
                 ]
-                scraped_data.extend(parsed)
 
-                logger.info(
-                    "Total de productos scrapeados de %s -> %s (pagina %s): %s",
-                    animal,
-                    category_label,
-                    page,
-                    len(parsed),
-                )
-                page += 1
+                all_scraped_data.extend(parsed)
                 category_counter += len(parsed)
+                page += 1
 
-            # Insertamos los datos de la categoria
             logger.info(
-                "Total de productos scrapeados (%s -> %s): %s",
-                animal,
-                category_label,
-                category_counter,
+                f"Finalizado {category_label}: "
+                f"{category_counter} productos nuevos para {animal}."
             )
 
-    logger.info("Total de productos extraidos: %s", len(scraped_data))
-    return scraped_data
+    logger.info(f"Scraping completado. Total global: {len(all_scraped_data)}")
+    return all_scraped_data
 
 
 def main():

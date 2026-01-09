@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import pandas as pd
 from sqlalchemy import create_engine, text
@@ -37,7 +37,9 @@ class PostgresManager:
         self,
         df: pd.DataFrame,
         table_name: str,
-        if_exists: str = "append",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows"
+        ] = "append",
         schema: Optional[str] = "public",
     ) -> None:
         """
@@ -46,7 +48,8 @@ class PostgresManager:
         Args:
             df (pd.DataFrame): Datos procesados a guardar.
             table_name (str): Nombre de la tabla de destino.
-            if_exists (str): Qué hacer si la tabla existe: 'fail', 'replace', 'append'.
+            if_exists ("fail", "replace", "append", "delete_rows"):
+                Qué hacer si la tabla existe: 'fail', 'replace', 'append'.
             schema (str, optional): Esquema de la base de datos (ej. 'public').
 
         Example:
@@ -75,5 +78,6 @@ class PostgresManager:
         Ejecuta una consulta SQL personalizada y devuelve los resultados.
         """
         with self.engine.connect() as connection:
-            result = connection.execute(text(query))
-            return [dict(row._mapping) for row in result]
+            # Usamos .mappings() para obtener diccionarios de forma oficial
+            result = connection.execute(text(query)).mappings()
+            return [dict(row) for row in result]

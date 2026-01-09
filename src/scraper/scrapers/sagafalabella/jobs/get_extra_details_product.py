@@ -8,17 +8,23 @@ from scraper.scrapers.sagafalabella.parser import get_product_detail
 logger = get_logger(__name__)
 
 
-def merge_animal_name(series):
-    orden = ["perro", "gato"]
-    valores = set(series.dropna().unique())
+def merge_animal_name(series: pd.Series) -> str:
+    orden: list[str] = ["perro", "gato"]
+    valores: set[str] = set(series.dropna().unique())
 
-    result = [x for x in orden if x in valores]
+    result: list[str] = [x for x in orden if x in valores]
     return "-".join(result)
 
 
-def get_category_and_description(row):
+def get_category_and_description(row: pd.Series) -> pd.Series:
     try:
-        cat, desc = get_product_detail(row["sku"], row["url"])
+        sku: str = row["sku"]
+        url: str = row["url"]
+
+        cat: str | None
+        desc: str | None
+        cat, desc = get_product_detail(sku, url)
+
         return pd.Series([cat, desc])
     except Exception as e:
         logger.error(
@@ -28,10 +34,10 @@ def get_category_and_description(row):
 
 
 # Main function
-def update_product_data(data):
+def update_product_data(data: pd.DataFrame) -> pd.DataFrame:
     # Combinar categoria_animal (perro-gato) por SKU presente en ambas categorias
     # de animal
-    new_merged_name = data.groupby("sku")["categoria_animal"].apply(
+    new_merged_name = data.groupby("sku")["categoria_animal"].apply(  # type: ignore[reportUnknownMemberType]
         merge_animal_name
     )
 

@@ -1,0 +1,22 @@
+{
+  "include": ["src"],
+  "exclude": ["**/__pycache__", ".venv"],
+
+  "ignore": ["**/site-packages/hdfs/**"],
+
+  "venvPath": ".",
+  "venv": ".venv",
+  "stubPath": "stubs",
+
+  "pythonVersion": "3.12",
+  "pythonPlatform": "All",
+
+  "typeCheckingMode": "strict",
+
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": "warning",
+  "reportUnknownParameterType": true,
+  "reportUnknownVariableType": true,
+
+  "useLibraryCodeForTypes": true,
+}

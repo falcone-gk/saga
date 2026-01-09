@@ -8,8 +8,6 @@ def limpiar_html(texto: str) -> str | None:
     """
     Limpia HTML (normal o escapado) y devuelve solo texto legible.
     """
-    if not texto or not isinstance(texto, str):
-        return None
 
     # Desescapar HTML (&lt;div&gt; -> <div>)
     texto = html.unescape(texto)
@@ -39,13 +37,13 @@ def limpiar_html(texto: str) -> str | None:
 
 
 # TODO: Cambiar nombre de funcion con mas detalle
-def extraer_peso(nombre):
+def extraer_peso(name: str) -> str | None:
     """
     Extrae valores como '7kg', '7 Kg', '7gr', '7 g' y devuelve '7 kg', '7 gr', etc.
     """
     patron = re.compile(r"(\d+(?:[\.,]\d+)?)\s*(kg|g|gr)", flags=re.IGNORECASE)
 
-    m = patron.search(nombre)
+    m = patron.search(name)
     if not m:
         return None
 
