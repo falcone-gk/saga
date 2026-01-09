@@ -4,7 +4,6 @@ from scraper.scrapers.sagafalabella.schemas import CategoryMetadata
 
 # Mapa de búsqueda rápida por ID
 CATEGORY_LOOKUP: Dict[str, CategoryMetadata] = {
-    # --- PERRO ---
     "CATG15475": {
         "animal": "perro",
         "category_label": "Alimentos",
@@ -55,13 +54,6 @@ CATEGORY_LOOKUP: Dict[str, CategoryMetadata] = {
         "category_label": "Ropa y accesorios",
         "category_url": "Ropa-y-accesorios-para-perros",
     },
-    # Es el mismo que Antiparasitarios
-    # "CATG15478": {
-    #     "animal": "perro",
-    #     "category_label": "Higiene y salud canina",
-    #     "category_url": "Antiparasitarios",
-    # },
-    # --- GATO ---
     "CATG15470": {
         "animal": "gato",
         "category_label": "Alimentos",
