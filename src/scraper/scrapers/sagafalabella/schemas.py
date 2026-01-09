@@ -1,5 +1,6 @@
 from typing import List, Literal, Optional, TypedDict
 
+import pyarrow as pa
 from pydantic import BaseModel
 
 
@@ -47,6 +48,31 @@ class ScrapedProduct(BaseModel):
     product_id: str
     sku: str
     url: str
+
+
+# Esquema de pyarrow basado en ScrapedProduct
+SCRAPED_PRODUCT_SCHEMA = pa.schema(
+    [
+        ("categoria_animal", pa.string()),
+        ("categoria_producto", pa.string()),
+        ("sub_categoria_producto", pa.string()),
+        ("marca", pa.string()),
+        ("nombre", pa.string()),
+        ("vendido_por", pa.string()),
+        ("titulo_promocion", pa.string()),
+        ("descripcion_promocion", pa.string()),
+        ("descripcion_producto", pa.string()),
+        ("peso_considerado", pa.string()),
+        ("precio_sin_descuento", pa.float64()),
+        ("precio_publico", pa.float64()),
+        ("precio_cmr", pa.float64()),
+        ("fecha_extraccion_inicio", pa.string()),
+        ("fecha_extraccion_final", pa.string()),
+        ("product_id", pa.string()),
+        ("sku", pa.string()),
+        ("url", pa.string()),
+    ]
+)
 
 
 class CategoryMetadata(TypedDict):

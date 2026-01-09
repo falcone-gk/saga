@@ -54,26 +54,30 @@ def update_product_data(data: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     from core.settings import settings
+    from scraper.scrapers.sagafalabella.schemas import SCRAPED_PRODUCT_SCHEMA
 
-    # Obtener el dataframe
-    parquet_path = settings.TMP_DIR / "saga_falabella.parquet"
-    data = pd.read_parquet(parquet_path, engine="pyarrow")
-
-    updated_data = update_product_data(data)
-
-    # Guardando el dataframe en un parquet
-    tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
-    updated_data.to_parquet(tmp_file, engine="pyarrow", index=False)
-
-    logger.info(
-        "Archivo temporal de saga_falabella_updated.parquet actualizado"
-    )
-
-
-if __name__ == "__main__":
     try:
         logger.info("=== INICIANDO UPDATE DE PRODUCTOS SAGA FALABELLA ===")
-        main()
+
+        # Obtener el dataframe
+        parquet_path = settings.TMP_DIR / "saga_falabella.parquet"
+        data = pd.read_parquet(parquet_path, engine="pyarrow")
+
+        updated_data = update_product_data(data)
+
+        # Guardando el dataframe en un parquet
+        tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
+        updated_data.to_parquet(
+            tmp_file,
+            engine="pyarrow",
+            index=False,
+            schema=SCRAPED_PRODUCT_SCHEMA,
+        )
+
+        logger.info(
+            "Archivo temporal de saga_falabella_updated.parquet actualizado"
+        )
+
         logger.info("=== PROCESO FINALIZADO ===")
 
     except KeyboardInterrupt:
@@ -83,3 +87,7 @@ if __name__ == "__main__":
     except Exception:
         # incluye stacktrace completo
         logger.exception("Error crítico durante la ejecución")
+
+
+if __name__ == "__main__":
+    main()

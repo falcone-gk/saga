@@ -56,9 +56,10 @@ def scrape() -> list[ScrapedProduct]:
 
             page = 1
             category_counter = 0
-            logger.info(f"Procesando categoría: {category_label}")
+            logger.info(f"Iniciando scraping de {animal} -> {category_label}")
 
             while True:
+                logger.info(f"Scrapeando pagina {page}")
                 products: list[ProductDict] = fetch_products_page(
                     page, cat_id, category_name
                 )
@@ -77,6 +78,11 @@ def scrape() -> list[ScrapedProduct]:
 
                 all_scraped_data.extend(parsed)
                 category_counter += len(parsed)
+
+                logger.info(
+                    f"Total de productos scrapeados de {animal} -> {category_label}: (pagina {page}): {len(parsed)}",
+                )
+
                 page += 1
 
             logger.info(
@@ -92,30 +98,40 @@ def main():
     import pandas as pd
 
     from core.settings import settings
+    from scraper.scrapers.sagafalabella.schemas import SCRAPED_PRODUCT_SCHEMA
 
-    data = scrape()
+    try:
+        logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
 
-    # Guardar los datos en un parquet
-    tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
-    df = pd.DataFrame(data)
-    df.to_parquet(
-        tmp_file,
-        engine="pyarrow",
-        index=False,
-    )
-    logger.info("Archivo temporal de saga_falabella.parquet generado")
+        data = scrape()
+        data_dicts = [p.model_dump() for p in data]
+
+        if not data:
+            logger.warning("No se obtuvieron datos del scrapeo.")
+            return
+
+        # Guardar los datos en un parquet
+        tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
+        df = pd.DataFrame(data_dicts)
+        df.to_parquet(
+            tmp_file,
+            engine="pyarrow",
+            index=False,
+            schema=SCRAPED_PRODUCT_SCHEMA,
+        )
+
+        logger.info(f"Archivo temporal generado en: {tmp_file}")
+        logger.info("=== PROCESO FINALIZADO CON ÉXITO ===")
+
+    except KeyboardInterrupt:
+        logger.warning(
+            "\nCapturado: Scrapeo interrumpido por el usuario (Ctrl+C)"
+        )
+        sys.exit(0)
+    except Exception as e:
+        logger.exception(f"Error crítico durante la ejecución: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    try:
-        logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
-        main()
-        logger.info("=== PROCESO FINALIZADO ===")
-    except KeyboardInterrupt:
-        logger.warning("Scrapeo interrumpido por el usuario")
-        sys.exit(0)
-
-    except Exception:
-        # incluye stacktrace completo
-        logger.exception("Error crítico durante la ejecución")
-        sys.exit(1)
+    main()
