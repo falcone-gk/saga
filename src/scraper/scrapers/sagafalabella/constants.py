@@ -1,132 +1,111 @@
-STRUCTURE_DATA = {
-    "perro": {
-        "categorias": [
-            {
-                "Alimentos": {
-                    "id": "CATG15475",
-                    "category_name": "Alimento-para-perros",
-                }
-            },
-            {
-                "Platos": {
-                    "id": "cat14110477",
-                    "category_name": "Platos--dispensadores-y-botellas",
-                }
-            },
-            {
-                "Antiparasitarios": {
-                    "id": "CATG15478",
-                    "category_name": "Antiparasitarios",
-                }
-            },
-            {
-                "Camas": {
-                    "id": "CATG15476",
-                    "category_name": "Camas-y-colchones-para-perro",
-                }
-            },
-            {
-                "Casas": {
-                    "id": "CATG15477",
-                    "category_name": "Casas-para-perros",
-                }
-            },
-            {
-                "Jaulas y transporte": {
-                    "id": "cat12500467",
-                    "category_name": "Jaulas-y-transporte-para-perros",
-                }
-            },
-            {
-                "Arnes": {
-                    "id": "cat14110481",
-                    "category_name": "Arnes--Collares-y-Correas",
-                }
-            },
-            {
-                "Peluqueria canina": {
-                    "id": "CATG15481",
-                    "category_name": "Peluqueria-canina",
-                }
-            },
-            {
-                "Juguetes y entrenamiento": {
-                    "id": "cat12500465",
-                    "category_name": "Juguetes-y-entrenamiento-para-perro",
-                }
-            },
-            {
-                "Ropa y accesorios": {
-                    "id": "cat12500466",
-                    "category_name": "Ropa-y-accesorios-para-perros",
-                }
-            },
-            # Es el mismo que Antiparasitarios
-            # {
-            #     "Higiene y salud canina": {
-            #         "id": "CATG15478",
-            #         "category_name": "Antiparasitarios",
-            #     }
-            # },
-        ]
+from typing import Dict
+
+from scraper.scrapers.sagafalabella.schemas import CategoryMetadata
+
+# Mapa de búsqueda rápida por ID
+CATEGORY_LOOKUP: Dict[str, CategoryMetadata] = {
+    # --- PERRO ---
+    "CATG15475": {
+        "animal": "perro",
+        "category_label": "Alimentos",
+        "category_url": "Alimento-para-perros",
     },
-    "gato": {
-        "categorias": [
-            {
-                "Alimentos": {
-                    "id": "CATG15470",
-                    "category_name": "Alimento-para-Gatos",
-                }
-            },
-            {
-                "Platos": {
-                    "id": "CATG33635",
-                    "category_name": "Platos-para-gatos",
-                }
-            },
-            {
-                "Arena": {
-                    "id": "CATG15472",
-                    "category_name": "Arena",
-                }
-            },
-            {
-                "Areneros": {
-                    "id": "CATG33754",
-                    "category_name": "Areneros",
-                }
-            },
-            {
-                "Camas": {
-                    "id": "CATG14641",
-                    "category_name": "Camas-para-gatos",
-                }
-            },
-            {
-                "Rascadores": {
-                    "id": "CATG33636",
-                    "category_name": "Rascadores-para-gato",
-                }
-            },
-            {
-                "Juguetes": {
-                    "id": "CATG14643",
-                    "category_name": "Juguetes-y-entretencion-para-gatos",
-                }
-            },
-            {
-                "Arneses y collares": {
-                    "id": "CATG14640",
-                    "category_name": "Arneses-y-collares",
-                }
-            },
-            {
-                "Higiene y cuidado": {
-                    "id": "CATG14642",
-                    "category_name": "Higiene-y-cuidados-para-gatos",
-                }
-            },
-        ]
+    "CAT14110477": {
+        "animal": "perro",
+        "category_label": "Platos",
+        "category_url": "Platos--dispensadores-y-botellas",
+    },
+    "CATG15478": {
+        "animal": "perro",
+        "category_label": "Antiparasitarios",
+        "category_url": "Antiparasitarios",
+    },
+    "CATG15476": {
+        "animal": "perro",
+        "category_label": "Camas",
+        "category_url": "Camas-y-colchones-para-perro",
+    },
+    "CATG15477": {
+        "animal": "perro",
+        "category_label": "Casas",
+        "category_url": "Casas-para-perros",
+    },
+    "CAT12500467": {
+        "animal": "perro",
+        "category_label": "Jaulas y transporte",
+        "category_url": "Jaulas-y-transporte-para-perros",
+    },
+    "CAT14110481": {
+        "animal": "perro",
+        "category_label": "Arnes",
+        "category_url": "Arnes--Collares-y-Correas",
+    },
+    "CATG15481": {
+        "animal": "perro",
+        "category_label": "Peluqueria canina",
+        "category_url": "Peluqueria-canina",
+    },
+    "CAT12500465": {
+        "animal": "perro",
+        "category_label": "Juguetes y entrenamiento",
+        "category_url": "Juguetes-y-entrenamiento-para-perro",
+    },
+    "CAT12500466": {
+        "animal": "perro",
+        "category_label": "Ropa y accesorios",
+        "category_url": "Ropa-y-accesorios-para-perros",
+    },
+    # Es el mismo que Antiparasitarios
+    # "CATG15478": {
+    #     "animal": "perro",
+    #     "category_label": "Higiene y salud canina",
+    #     "category_url": "Antiparasitarios",
+    # },
+    # --- GATO ---
+    "CATG15470": {
+        "animal": "gato",
+        "category_label": "Alimentos",
+        "category_url": "Alimento-para-Gatos",
+    },
+    "CATG33635": {
+        "animal": "gato",
+        "category_label": "Platos",
+        "category_url": "Platos-para-gatos",
+    },
+    "CATG15472": {
+        "animal": "gato",
+        "category_label": "Arena",
+        "category_url": "Arena",
+    },
+    "CATG33754": {
+        "animal": "gato",
+        "category_label": "Areneros",
+        "category_url": "Areneros",
+    },
+    "CATG14641": {
+        "animal": "gato",
+        "category_label": "Camas",
+        "category_url": "Camas-para-gatos",
+    },
+    "CATG33636": {
+        "animal": "gato",
+        "category_label": "Rascadores",
+        "category_url": "Rascadores-para-gato",
+    },
+    "CATG14643": {
+        "animal": "gato",
+        "category_label": "Juguetes",
+        "category_url": "Juguetes-y-entretencion-para-gatos",
+    },
+    "CATG14640": {
+        "animal": "gato",
+        "category_label": "Arneses y collares",
+        "category_url": "Arneses-y-collares",
+    },
+    "CATG14642": {
+        "animal": "gato",
+        "category_label": "Higiene y cuidado",
+        "category_url": "Higiene-y-cuidados-para-gatos",
     },
 }
 
