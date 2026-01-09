@@ -16,5 +16,6 @@ class PostgresConfig:
 class HDFSConfig:
     """Esquema de configuracion para HDFS"""
 
-    url: str
+    host: str
+    port: int
     user: str
