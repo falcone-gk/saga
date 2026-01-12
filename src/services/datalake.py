@@ -1,15 +1,19 @@
 import json
-from typing import Any, Dict, List, Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.fs as fs
 import pyarrow.parquet as pq
+from typing_extensions import Literal
 
 from core.logging import get_logger
 from core.schemas import HDFSConfig
 
 logger = get_logger(__name__)
+
+type Storage = Literal["local", "hdfs"]
 
 
 class DataLakeManager:
@@ -18,32 +22,42 @@ class DataLakeManager:
     Refactorizada para usar PyArrow FileSystem API.
     """
 
-    def __init__(self, config: HDFSConfig):
+    def __init__(
+        self,
+        connection_type: Storage = "local",
+        config: Optional[HDFSConfig] = None,
+    ):
         """
-        Inicializa la conexión con HDFS usando PyArrow.
+        Inicializa el sistema de archivos.
 
-        Nota: Requiere que las variables de entorno HADOOP_HOME o CLASSPATH
-        estén configuradas correctamente en el sistema.
+        :param connection_type: 'local' o 'hdfs'. USAR 'local' PARA TESTING O LOCAL.
+        :param config: Objeto HDFSConfig si se usa hdfs, de lo contrario None.
         """
-
-        self.hdfs = fs.HadoopFileSystem(
-            host=config.host,
-            port=config.port,
-            user=config.user,
-        )
+        if connection_type == "hdfs":
+            if not config:
+                raise ValueError("Se requiere 'config' para conexiones HDFS.")
+            self.filesystem = fs.HadoopFileSystem(
+                host=config.host,
+                port=config.port,
+                user=config.user,
+            )
+        else:
+            self.filesystem = fs.LocalFileSystem()
 
     def write_data(
         self,
-        hdfs_path: str,
+        path: Union[str, Path],
         data: Union[Dict[str, Any], List[Any], pd.DataFrame],
         fmt: str = "json",
         **kwargs: Any,
     ) -> None:
         """Escribe datos en HDFS usando la interfaz de PyArrow."""
 
+        path_as_str = str(path)
+
         if fmt == "json":
             content = json.dumps(data, indent=4).encode("utf-8")
-            with self.hdfs.open_output_stream(hdfs_path) as stream:
+            with self.filesystem.open_output_stream(path_as_str) as stream:
                 stream.write(content)
 
         elif fmt == "csv":
@@ -53,7 +67,7 @@ class DataLakeManager:
                 )
 
             # Usamos un buffer para convertir el DF a CSV y luego escribir al stream
-            with self.hdfs.open_output_stream(hdfs_path) as stream:
+            with self.filesystem.open_output_stream(path_as_str) as stream:
                 data.to_csv(
                     stream,
                     index=kwargs.get("index", False),
@@ -69,31 +83,33 @@ class DataLakeManager:
 
             # PyArrow escribe directamente DataFrames de Pandas a HDFS de forma nativa
             table = pa.Table.from_pandas(data)
-            with self.hdfs.open_output_stream(hdfs_path) as stream:
+            with self.filesystem.open_output_stream(path_as_str) as stream:
                 pq.write_table(table, stream, **kwargs)
 
         else:
             raise ValueError(f"Formato '{fmt}' no soportado.")
 
-        logger.info(f"Archivo guardado exitosamente en: {hdfs_path}")
+        logger.info(f"Archivo guardado exitosamente en: {path}")
 
     def read_data(
-        self, hdfs_path: str, fmt: str = "json"
+        self, path: Union[str, Path], fmt: str = "json"
     ) -> Union[Dict[str, Any], List[Any], pd.DataFrame]:
         """Lee datos desde HDFS usando PyArrow FileSystem."""
 
-        with self.hdfs.open_input_stream(hdfs_path) as stream:
+        path_as_str = str(path)
+
+        if fmt == "parquet":
+            # Pasamos el filesystem y la ruta; pq.read_table se encarga del resto
+            table = pq.read_table(path_as_str, filesystem=self.filesystem)
+            return table.to_pandas()
+
+        with self.filesystem.open_input_stream(path_as_str) as stream:
             if fmt == "json":
                 return json.loads(stream.readall().decode("utf-8"))
 
             elif fmt == "csv":
                 # pandas puede leer directamente desde el stream de PyArrow
                 return pd.read_csv(stream)
-
-            elif fmt == "parquet":
-                # Leemos la tabla y convertimos a DataFrame
-                table = pq.read_table(stream)
-                return table.to_pandas()
 
             else:
                 raise ValueError(f"Formato '{fmt}' no soportado.")
@@ -102,9 +118,9 @@ class DataLakeManager:
         """Lista los archivos en un directorio de HDFS."""
         # FileSelector permite listar archivos de forma recursiva si se desea
         selector = fs.FileSelector(hdfs_dir, recursive=False)
-        items = self.hdfs.get_file_info(selector)
+        items = self.filesystem.get_file_info(selector)
         return [item.path for item in items]
 
-    def delete_file(self, hdfs_path: str) -> None:
+    def delete_file(self, path: str) -> None:
         """Borra un archivo o directorio en HDFS."""
-        self.hdfs.delete_file(hdfs_path)
+        self.filesystem.delete_file(path)
