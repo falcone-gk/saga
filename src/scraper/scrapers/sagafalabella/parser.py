@@ -102,8 +102,6 @@ def get_category_name_by_id(category_id: Optional[str]) -> Optional[str]:
 
 
 def get_product_detail(sku: str, url: str) -> tuple[str | None, str | None]:
-    logger.info(f"Extrayendo detalle del producto con sku: {sku}")
-
     try:
         content = fetch_html_product_extra_details(url)
 
