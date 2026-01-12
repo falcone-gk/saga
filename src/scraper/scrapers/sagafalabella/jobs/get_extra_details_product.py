@@ -23,6 +23,8 @@ def get_category_and_description(row: pd.Series) -> pd.Series:
 
         cat: str | None
         desc: str | None
+
+        logger.info(f"Extrayendo detalle del producto con sku: {sku}")
         cat, desc = get_product_detail(sku, url)
 
         return pd.Series([cat, desc])
@@ -54,25 +56,25 @@ def update_product_data(data: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     from core.settings import settings
-    from scraper.scrapers.sagafalabella.schemas import SCRAPED_PRODUCT_SCHEMA
+    from services.datalake import DataLakeManager
 
     try:
         logger.info("=== INICIANDO UPDATE DE PRODUCTOS SAGA FALABELLA ===")
 
         # Obtener el dataframe
         parquet_path = settings.TMP_DIR / "saga_falabella.parquet"
-        data = pd.read_parquet(parquet_path, engine="pyarrow")
+        datalake = DataLakeManager(connection_type="local")
+        data = datalake.read_data(parquet_path, fmt="parquet")
+
+        if not isinstance(data, pd.DataFrame):
+            logger.error("No se pudo leer el archivo de datos")
+            return
 
         updated_data = update_product_data(data)
 
         # Guardando el dataframe en un parquet
         tmp_file = settings.TMP_DIR / "saga_falabella_updated.parquet"
-        updated_data.to_parquet(
-            tmp_file,
-            engine="pyarrow",
-            index=False,
-            schema=SCRAPED_PRODUCT_SCHEMA,
-        )
+        datalake.write_data(tmp_file, updated_data, fmt="parquet")
 
         logger.info(
             "Archivo temporal de saga_falabella_updated.parquet actualizado"

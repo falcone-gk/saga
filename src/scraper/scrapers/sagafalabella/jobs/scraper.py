@@ -98,7 +98,7 @@ def main():
     import pandas as pd
 
     from core.settings import settings
-    from scraper.scrapers.sagafalabella.schemas import SCRAPED_PRODUCT_SCHEMA
+    from services.datalake import DataLakeManager
 
     try:
         logger.info("=== INICIANDO SCRAPER SAGA FALABELLA ===")
@@ -112,13 +112,9 @@ def main():
 
         # Guardar los datos en un parquet
         tmp_file = settings.TMP_DIR / "saga_falabella.parquet"
+        datalake = DataLakeManager(connection_type="local")
         df = pd.DataFrame(data_dicts)
-        df.to_parquet(
-            tmp_file,
-            engine="pyarrow",
-            index=False,
-            schema=SCRAPED_PRODUCT_SCHEMA,
-        )
+        datalake.write_data(tmp_file, df, fmt="parquet")
 
         logger.info(f"Archivo temporal generado en: {tmp_file}")
         logger.info("=== PROCESO FINALIZADO CON ÉXITO ===")

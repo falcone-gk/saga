@@ -3,6 +3,7 @@ import pandas as pd
 from core.logging import get_logger
 from core.schemas import PostgresConfig
 from core.settings import settings
+from services.datalake import DataLakeManager
 from services.postgres import PostgresManager
 
 logger = get_logger(__name__)
@@ -13,7 +14,12 @@ def main():
 
     # Obtener el dataframe
     parquet_path = settings.TMP_DIR / "saga_falabella_updated.parquet"
-    data = pd.read_parquet(parquet_path, engine="pyarrow").drop(columns=["url"])
+    datalake = DataLakeManager(connection_type="local")
+    data = datalake.read_data(parquet_path, fmt="parquet")
+
+    if not isinstance(data, pd.DataFrame):
+        logger.error("No se pudo leer el archivo de datos")
+        return
 
     config = PostgresConfig(
         host="localhost",
@@ -23,7 +29,7 @@ def main():
         database="test_biomont",
     )
     db = PostgresManager(config)
-    db.save_dataframe(data, "webscrapping_sagafalabella2")
+    db.save_dataframe(data.drop(columns=["url"]), "webscrapping_sagafalabella2")
 
     logger.info("Datos scrapeados a SQL guardados de manera exitosa")
 
