@@ -11,7 +11,7 @@ from scraper.scrapers.sagafalabella.client import (
 )
 from scraper.scrapers.sagafalabella.constants import CATEGORY_LOOKUP
 from scraper.scrapers.sagafalabella.schemas import RawProduct, ScrapedProduct
-from scraper.utils.text import get_weight_from_text, limpiar_html
+from scraper.utils.text import clean_html, get_weight_from_text
 
 logger = get_logger(__name__)
 
@@ -127,7 +127,7 @@ def get_product_detail(sku: str, url: str) -> tuple[str | None, str | None]:
             "longDescription"
         ) or product_info.get("description")
         description = (
-            limpiar_html(raw_description)
+            clean_html(raw_description)
             if isinstance(raw_description, str)
             else None
         )

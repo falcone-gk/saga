@@ -4,7 +4,7 @@ import re
 from bs4 import BeautifulSoup
 
 
-def limpiar_html(texto: str) -> str | None:
+def clean_html(texto: str) -> str | None:
     """
     Limpia HTML (normal o escapado) y devuelve solo texto legible.
     """
