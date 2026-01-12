@@ -11,7 +11,7 @@ from scraper.scrapers.sagafalabella.client import (
 )
 from scraper.scrapers.sagafalabella.constants import CATEGORY_LOOKUP
 from scraper.scrapers.sagafalabella.schemas import RawProduct, ScrapedProduct
-from scraper.utils.text import extraer_peso, limpiar_html
+from scraper.utils.text import get_weight_from_text, limpiar_html
 
 logger = get_logger(__name__)
 
@@ -59,7 +59,7 @@ def get_product_data(
     normal_price, discounted_price, precio_cmr = get_prices(product)
 
     peso = (
-        extraer_peso(product.displayName)
+        get_weight_from_text(product.displayName)
         if category_name == "Alimentos"
         else None
     )

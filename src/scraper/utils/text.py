@@ -36,8 +36,7 @@ def limpiar_html(texto: str) -> str | None:
     return texto_limpio or None
 
 
-# TODO: Cambiar nombre de funcion con mas detalle
-def extraer_peso(name: str) -> str | None:
+def get_weight_from_text(name: str) -> str | None:
     """
     Extrae valores como '7kg', '7 Kg', '7gr', '7 g' y devuelve '7 kg', '7 gr', etc.
     """
