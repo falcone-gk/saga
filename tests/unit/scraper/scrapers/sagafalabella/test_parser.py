@@ -37,49 +37,55 @@ def test_get_prices_with_all_types() -> None:
 
 @patch("scraper.scrapers.sagafalabella.parser.fetch_html_product_extra_details")
 def test_get_product_detail_success(mock_fetch: MagicMock) -> None:
+    # Simulamos el HTML con la estructura de breadcrumbs requerida
     mock_html: str = """
     <html>
-        <script id="__NEXT_DATA__">
-        {
-            "props": {
-                "pageProps": {
-                    "productData": {
-                        "description": "Una descripción de prueba"
+        <body>
+            <ol class="Breadcrumbs-module_breadcrumb__b47ha">
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Mascotas - Perros</a></li>
+                <li><a href="#">Higiene y cuidados para perros</a></li>
+                <li><a href="#">Antiparasitarios</a></li>
+            </ol>
+            <script id="__NEXT_DATA__">
+            {
+                "props": {
+                    "pageProps": {
+                        "productData": {
+                            "description": "Una descripción de prueba"
+                        }
                     }
                 }
             }
-        }
-        </script>
-        <a class="Breadcrumbs-module_selected-bread-crumb__ZPj02" href="/category/cat123">Link</a>
+            </script>
+        </body>
     </html>
     """
     mock_fetch.return_value = mock_html
 
-    with patch(
-        "scraper.scrapers.sagafalabella.parser.get_category_name_by_id"
-    ) as mock_cat:
-        mock_cat: MagicMock
-        mock_cat.return_value = "Alimentos"
+    # Ahora desempaquetamos 3 valores
+    category, sub_category, description = get_product_detail(
+        "sku_test", "url_test"
+    )
 
-        category: str | None
-        description: str | None
-        category, description = get_product_detail("sku_test", "url_test")
-
-        assert category == "Alimentos"
-        assert description == "Una descripción de prueba"
-        mock_fetch.assert_called_once_with("url_test")
+    # Verificaciones
+    assert category == "Higiene y cuidados para perros"
+    assert sub_category == "Antiparasitarios"
+    assert description == "Una descripción de prueba"
+    mock_fetch.assert_called_once_with("url_test")
 
 
 def test_get_product_detail_fail_gracefully() -> None:
     with patch(
         "scraper.scrapers.sagafalabella.parser.fetch_html_product_extra_details"
     ) as mock_fetch:
-        mock_fetch: MagicMock
         mock_fetch.return_value = None
 
-        category: str | None
-        description: str | None
-        category, description = get_product_detail("sku_test", "url_test")
+        # Desempaquetamos 3 valores incluso en el caso de error
+        category, sub_category, description = get_product_detail(
+            "sku_test", "url_test"
+        )
 
         assert category is None
+        assert sub_category is None
         assert description is None

@@ -1,6 +1,5 @@
 import json
-import re
-from typing import Any, Optional
+from typing import Any
 
 import pendulum
 from bs4 import BeautifulSoup
@@ -9,7 +8,6 @@ from core.logging import get_logger
 from scraper.scrapers.sagafalabella.client import (
     fetch_html_product_extra_details,
 )
-from scraper.scrapers.sagafalabella.constants import CATEGORY_LOOKUP
 from scraper.scrapers.sagafalabella.schemas import RawProduct, ScrapedProduct
 from scraper.utils.text import clean_html, get_weight_from_text
 
@@ -90,67 +88,82 @@ def get_product_data(
     return result
 
 
-def get_category_name_by_id(category_id: Optional[str]) -> Optional[str]:
-    if not category_id:
-        return None
+def get_breadcrumb_categories(
+    soup: BeautifulSoup,
+) -> tuple[str | None, str | None]:
+    """
+    Extrae los dos siguientes niveles después de omitir los dos primeros.
+    Ejemplo: [Home, Mascotas, Higiene, Cepillos, Madera]
+    -> Cat: Higiene, Sub: Cepillos
+    """
+    # Buscamos la lista de breadcrumbs
+    ol = soup.find("ol", class_="Breadcrumbs-module_breadcrumb__b47ha")
+    if not ol:
+        return None, None
 
-    category_info = CATEGORY_LOOKUP.get(category_id.upper())
-    if category_info:
-        return category_info.get("category_label")
+    # Obtenemos todos los textos de los enlaces
+    links = [a.get_text(strip=True) for a in ol.find_all("a")]
 
-    return None
+    # Cortamos para ignorar los dos primeros (Home y Raíz)
+    # links_to_use contendrá todo lo que viene después
+    links_to_use = links[2:]
+
+    # Inicializamos variables
+    category = None
+    sub_category = None
+
+    # Tomamos el primero de la lista restante como categoría
+    if len(links_to_use) >= 1:
+        category = links_to_use[0]
+
+    # Tomamos el segundo de la lista restante como subcategoría (si existe)
+    if len(links_to_use) >= 2:
+        sub_category = links_to_use[1]
+
+    return category, sub_category
 
 
-def get_product_detail(sku: str, url: str) -> tuple[str | None, str | None]:
+def get_product_detail(
+    sku: str, url: str
+) -> tuple[str | None, str | None, str | None]:
     try:
         content = fetch_html_product_extra_details(url)
 
         if content is None:
             logger.warning(f"No se pudo extraer detalle del sku {sku}")
-            return None, None
+            return None, None, None
 
         soup = BeautifulSoup(content, "html.parser")
 
+        # Extraer Categorías (Nueva lógica integrada)
+        category, sub_category = get_breadcrumb_categories(soup)
+
+        # Extraer Descripción (Tu lógica original de JSON)
         next_data_script = soup.find("script", id="__NEXT_DATA__")
-        if not next_data_script or not next_data_script.string:
-            return None, None
+        description = None
 
-        data_json = json.loads(next_data_script.string)
-        product_info = (
-            data_json.get("props", {})
-            .get("pageProps", {})
-            .get("productData", {})
-        )
-
-        # ---- descripción ----
-        raw_description = product_info.get(
-            "longDescription"
-        ) or product_info.get("description")
-        description = (
-            clean_html(raw_description)
-            if isinstance(raw_description, str)
-            else None
-        )
+        if next_data_script and next_data_script.string:
+            data_json = json.loads(next_data_script.string)
+            product_info = (
+                data_json.get("props", {})
+                .get("pageProps", {})
+                .get("productData", {})
+            )
+            raw_description = product_info.get(
+                "longDescription"
+            ) or product_info.get("description")
+            description = (
+                clean_html(raw_description)
+                if isinstance(raw_description, str)
+                else None
+            )
 
         if not description:
             logger.warning(f"No se pudo extraer descripción del sku {sku}")
 
-        # ---- categoría ----
-        category: str | None = None
-        breadcrumb_link = soup.select_one(
-            "a.Breadcrumbs-module_selected-bread-crumb__ZPj02"
-        )
-
-        if breadcrumb_link:
-            href = breadcrumb_link.get("href")
-            if isinstance(href, str):
-                match = re.search(r"/category/([^/]+)", href)
-                if match:
-                    category_id = match.group(1)
-                    category = get_category_name_by_id(category_id)
-
-        return category, description
+        # Ahora retornamos 3 valores
+        return category, sub_category, description
 
     except Exception as e:
         logger.error(f"Error en sku {sku}: {e}")
-        return None, None
+        return None, None, None

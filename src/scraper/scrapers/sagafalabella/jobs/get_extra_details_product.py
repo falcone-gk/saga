@@ -25,14 +25,14 @@ def get_category_and_description(row: pd.Series) -> pd.Series:
         desc: str | None
 
         logger.info(f"Extrayendo detalle del producto con sku: {sku}")
-        cat, desc = get_product_detail(sku, url)
+        cat, sub_cat, desc = get_product_detail(sku, url)
 
-        return pd.Series([cat, desc])
+        return pd.Series([cat, sub_cat, desc])
     except Exception as e:
         logger.error(
             f"Error extrayendo detalle del producto (SKU {row.get('sku')}): {e}"
         )
-        return pd.Series([None, None])
+        return pd.Series([None, None, None])
 
 
 # Main function
@@ -47,9 +47,9 @@ def update_product_data(data: pd.DataFrame) -> pd.DataFrame:
     updated_data = data.drop_duplicates(subset="sku").reset_index(drop=True)
 
     # Extraer categoria y descripcion del producto
-    updated_data[["categoria_producto", "descripcion_producto"]] = (
-        updated_data.apply(get_category_and_description, axis=1)
-    )
+    updated_data[
+        ["categoria_producto", "sub_categoria_producto", "descripcion_producto"]
+    ] = updated_data.apply(get_category_and_description, axis=1)
 
     return updated_data
 
