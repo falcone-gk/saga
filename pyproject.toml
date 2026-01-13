@@ -28,6 +28,13 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests que requieren conexión a internet o bases de datos reales.",
+    "unit: tests de lógica pura que no requieren servicios externos.",
+]
+testpaths = ["tests"]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
