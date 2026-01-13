@@ -54,6 +54,11 @@ CATEGORY_LOOKUP: Dict[str, CategoryMetadata] = {
         "category_label": "Ropa y accesorios",
         "category_url": "Ropa-y-accesorios-para-perros",
     },
+    "cat12500464": {
+        "animal": "perro",
+        "category_label": "Higiene y cuidado",
+        "category_url": "Higiene-y-cuidados-para-perros",
+    },
     "CATG15470": {
         "animal": "gato",
         "category_label": "Alimentos",
