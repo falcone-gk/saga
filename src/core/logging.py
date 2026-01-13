@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +27,10 @@ def get_logger(name: str) -> logging.Logger:
     logger.addHandler(console)
 
     # ---------- Nombre del script (SAFE) ----------
+    # Evitamos que al correr test se generen logs
+    if "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST"):
+        return logger
+
     try:
         script_name = Path(sys.argv[0]).stem or "interactive"
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
